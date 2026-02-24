@@ -1,4 +1,5 @@
 import { Recycle } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function Header() {
   return (
@@ -6,28 +7,33 @@ function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
-            <Recycle className="h-8 w-8 text-green-500" />
-            <span className="text-xl font-bold text-gray-900">
+            <Link to="/">
+              <Recycle className="h-8 w-8 text-green-500" />
+            </Link>
+            <Link to="/" className="text-xl font-bold text-gray-900">
               Green Vietnam
-            </span>
+            </Link>
           </div>
 
           <nav className="hidden md:flex items-center space-x-8">
             <a
-              href="#"
+              href="/"
               className="text-gray-900 font-medium hover:text-green-500 transition"
             >
               Trang chủ
             </a>
             <a
-              href="#"
+              href="/login"
               className="text-gray-600 hover:text-green-500 transition"
             >
               Đăng nhập
             </a>
-            <button className="bg-green-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-600 transition">
+            <a
+              href="/register"
+              className="bg-green-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-600 transition"
+            >
               Đăng ký
-            </button>
+            </a>
           </nav>
 
           <button className="md:hidden text-gray-600">

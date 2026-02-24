@@ -7,6 +7,7 @@ import {
   Truck,
   Gift,
 } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function Homepage() {
   const stats = [
@@ -87,8 +88,9 @@ function Homepage() {
             quả vì một môi trường xanh sạch.
           </p>
           <button className="bg-green-500 text-white px-8 py-3 rounded-lg font-medium hover:bg-green-600 transition inline-flex items-center space-x-2">
-            <Camera className="h-5 w-5" />
-            <span>Báo cáo thu gom</span>
+            <Link to="/login">
+              <span>Báo cáo thu gom</span>
+            </Link>
           </button>
         </div>
       </section>
