@@ -6,9 +6,14 @@ function Header() {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  // Citizen đã đăng nhập thì "Trang chủ" = /citizen; chưa đăng nhập hoặc role khác = /
-  const homePath =
-    isAuthenticated && user?.role === ROLES.CITIZEN ? "/citizen" : "/";
+  // Điều hướng trang chủ theo role
+  const homePath = isAuthenticated
+    ? user?.role === ROLES.ADMIN
+      ? "/admin"
+      : user?.role === ROLES.CITIZEN
+        ? "/citizen"
+        : "/"
+    : "/";
 
   const handleLogout = () => {
     logout();
@@ -61,7 +66,9 @@ function Header() {
               <>
                 <span className="flex items-center gap-2 text-gray-600 text-sm">
                   <User className="h-4 w-4" />
-                  <span className="font-medium text-gray-900">{user?.full_name}</span>
+                  <span className="font-medium text-gray-900">
+                    {user?.full_name}
+                  </span>
                   <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium">
                     {user?.roleName}
                   </span>
@@ -93,7 +100,11 @@ function Header() {
             )}
           </nav>
 
-          <button className="md:hidden text-gray-600" type="button" aria-label="Menu">
+          <button
+            className="md:hidden text-gray-600"
+            type="button"
+            aria-label="Menu"
+          >
             <svg
               className="h-6 w-6"
               fill="none"

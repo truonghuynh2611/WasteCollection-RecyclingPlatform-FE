@@ -1,0 +1,174 @@
+{
+  "roles": [
+    {
+      "id": "r1",
+      "name": "Admin",
+      "created_at": "2023-10-27T10:00:00Z"
+    },
+    {
+      "id": "r2",
+      "name": "Collector",
+      "created_at": "2023-10-27T10:00:00Z"
+    },
+    {
+      "id": "r3",
+      "name": "Citizen",
+      "created_at": "2023-10-27T10:00:00Z"
+    }
+  ],
+  "districts": [
+    {
+      "id": "d1",
+      "name": "Quận 1",
+      "created_at": "2023-10-27T10:00:00Z"
+    },
+    {
+      "id": "d2",
+      "name": "Quận Bình Thạnh",
+      "created_at": "2023-10-27T10:00:00Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "u1",
+      "full_name": "Green Admin",
+      "phone": "0901234568",
+      "password": "123456",
+      "role": "r1",
+      "created_at": "2023-10-27T10:00:00Z",
+      "updated_at": "2023-10-27T10:00:00Z",
+      "deleted_at": null
+    },
+    {
+      "id": "u2",
+      "full_name": "Nguyễn Văn A",
+      "phone": "0901234567",
+      "password": "123456",
+      "role": "r3",
+      "districtId": "d1",
+      "total_points": 150,
+      "created_at": "2023-10-27T10:00:00Z",
+      "updated_at": "2023-10-27T10:00:00Z",
+      "deleted_at": null
+    },
+    {
+      "id": "u3",
+      "full_name": "Nhân viên Thu gom",
+      "phone": "0901234569",
+      "password": "123456",
+      "role": "r2",
+      "districtId": "d1",
+      "created_at": "2023-10-27T10:00:00Z",
+      "updated_at": "2023-10-27T10:00:00Z",
+      "deleted_at": null
+    }
+  ],
+  "waste_reports": [
+    {
+      "id": "w1",
+      "citizenId": "u1",
+      "waste_type": "Recyclable",
+      "description": "Nhiều chai nhựa tại vỉa hè",
+      "latitude": 10.7769,
+      "longitude": 106.7009,
+      "address": "123 Lê Lợi, Quận 1",
+      "status": "pending",
+      "is_classification_correct": true,
+      "created_at": "2023-10-27T11:00:00Z",
+      "updated_at": "2023-10-27T11:00:00Z",
+      "deleted_at": null
+    },
+    {
+      "id": "49a6",
+      "citizenId": "u2",
+      "address": "sdsdfsdfsdf",
+      "waste_type": "Nhựa",
+      "description": "sdfdsfsdfs"
+    }
+  ],
+  "assignments": [
+    {
+      "id": "as1",
+      "reportId": "w1",
+      "collectorId": "u2",
+      "assigned_by": "u3",
+      "assigned_at": "2023-10-27T12:00:00Z",
+      "accepted_at": null,
+      "completed_at": null
+    }
+  ],
+  "status_logs": [
+    {
+      "id": "log1",
+      "reportId": "w1",
+      "updated_by": "u3",
+      "old_status": "pending",
+      "new_status": "assigned",
+      "note": "Đã điều phối nhân viên",
+      "created_at": "2023-10-27T12:05:00Z"
+    }
+  ],
+  "complaints": [
+    {
+      "id": "c1",
+      "reportId": "w1",
+      "citizenId": "u1",
+      "assigned_admin_id": "u3",
+      "title": "Chậm trễ thu gom",
+      "description": "Đã 2 ngày chưa thấy ai dọn",
+      "status": "open",
+      "resolution_note": "",
+      "created_at": "2023-10-28T09:00:00Z",
+      "resolved_at": null,
+      "deleted_at": null
+    }
+  ],
+  "media_files": [
+    {
+      "id": "m1",
+      "reportId": "w1",
+      "complaintId": null,
+      "uploaded_by": "u1",
+      "file_url": "https://example.com/images/waste1.jpg",
+      "file_type": "image/jpeg",
+      "created_at": "2023-10-27T11:05:00Z"
+    }
+  ],
+  "point_rules": [
+    {
+      "id": "pr1",
+      "waste_type": "Recyclable",
+      "base_points": 10,
+      "bonus_points": 5,
+      "penalty_points": 0,
+      "description": "Điểm cho rác tái chế",
+      "is_active": true,
+      "created_by": "u3",
+      "created_at": "2023-10-20T08:00:00Z"
+    }
+  ],
+  "point_transactions": [
+    {
+      "id": "t1",
+      "citizenId": "u1",
+      "reportId": "w1",
+      "ruleId": "pr1",
+      "transaction_type": "earn",
+      "points": 15,
+      "description": "Thưởng báo cáo rác đúng loại",
+      "created_at": "2023-10-27T13:00:00Z"
+    }
+  ],
+  "system_logs": [
+    {
+      "id": "sl1",
+      "userId": "u1",
+      "action": "LOGIN",
+      "metadata": {
+        "ip": "127.0.0.1",
+        "device": "iPhone 13"
+      },
+      "created_at": "2023-10-27T09:50:00Z"
+    }
+  ]
+}

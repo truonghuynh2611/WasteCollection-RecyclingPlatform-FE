@@ -1,241 +1,499 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router';
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Zap, Users as Users2, Truck, CheckCircle } from "lucide-react";
+import Sidebar from "../Layouts/Sidebar";
 
-const AdminPage = () => {
-  const [stats, setStats] = useState({
-    available: 156,
-    needsProcessing: 42,
-    assigned: 28,
-    inProgress: 14,
-    completed: 1240,
-    completedGrowth: '+12%'
-  });
-
-  // Dữ liệu xu hướng thu gom (7 ngày)
-  const trendData = [
-    { day: 'Thứ 2', value: 15 },
-    { day: 'Thứ 3', value: 24 },
-    { day: 'Thứ 4', value: 18 },
-    { day: 'Thứ 5', value: 32 },
-    { day: 'Thứ 6', value: 29 },
-    { day: 'Thứ 7', value: 41 },
-    { day: 'CN', value: 38 }
-  ];
-
-  // Dữ liệu phân tích loại rác
-  const wasteTypeData = [
-    { name: 'Giấy', value: 35, color: '#10B981' },
-    { name: 'Nhựa', value: 30, color: '#3B82F6' },
-    { name: 'Kim loại', value: 25, color: '#F97316' },
-    { name: 'Khác', value: 10, color: '#E5E7EB' }
-  ];
-
-  // Dữ liệu hiệu suất nhân viên
-  const employeeData = [
-    { name: 'Nguyễn Văn A', collections: 120 },
-    { name: 'Trần Thị B', collections: 95 },
-    { name: 'Lê Văn C', collections: 87 },
-    { name: 'Phạm Minh D', collections: 73 },
-    { name: 'Hoàng Thị E', collections: 61 }
-  ];
-
+const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="flex items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">🌱</span>
-            </div>
-            <span className="text-xl font-semibold text-gray-800">EcoConnect</span>
-          </div>
-          
-          <div className="flex items-center gap-4">
-            <button className="relative p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-            </button>
-            
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <div className="text-sm font-medium text-gray-700">Quản trị viên</div>
-              </div>
-              <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar />
 
-      <div className="flex">
-        {/* Sidebar */}
-        <aside className="w-64 bg-white min-h-screen border-r">
-          <nav className="p-4">
-            <div className="mb-6">
-              <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Chính</h3>
-              <div className="space-y-1">
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-emerald-600 bg-emerald-50 rounded-lg font-medium">
-                  <span>📊</span>
-                  <span>Bảng điều khiển</span>
-                </button>
-                <Link 
-                  to="/reportManagement" 
-                  className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
-                  <span>📝</span>
-                  <span>Yêu cầu thu gom</span>
-                </Link>
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
-                  <span>👥</span>
-                  <span>Quản lý Collector</span>
-                </button>
-              </div>
-            </div>
-            
-            <div>
-              <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Hoạt động</h3>
-              <div className="space-y-1">
-                <button className="w-full flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg">
-                  <span>⚙️</span>
-                  <span>Cấu hình điểm thưởng</span>
-                </button>
-              </div>
-            </div>
-          </nav>
-        </aside>
-
-        {/* Main Content */}
-        <main className="flex-1 p-6">
-          {/* Title */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">Tổng quan hoạt động</h1>
-            <p className="text-gray-600 mt-1">Chào mừng trở lại! Hôm nay có {stats.needsProcessing} yêu cầu thu gom mới.</p>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-5 gap-4 mb-6">
-            <div className="bg-white rounded-lg p-5 shadow-sm border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">HIỆN CÓ</span>
-                <span className="text-gray-400">📋</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">{stats.available}</div>
-              <div className="text-sm text-gray-500 mt-1">Yêu cầu</div>
+      <div className="flex-1 flex flex-col">
+        <main className="flex-1 overflow-auto p-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="mb-8">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                Tổng quan hoạt động
+              </h1>
+              <p className="text-gray-600">
+                Chào mừng trở lại! Hôm nay có 12 yêu cầu thu gom mới.
+              </p>
             </div>
 
-            <div className="bg-white rounded-lg p-5 shadow-sm border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">CHỜ PHÂN CÔNG</span>
-                <span className="text-orange-500">⏱️</span>
+            <div className="grid grid-cols-6 gap-4 mb-8">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Hiện có
+                  </span>
+                  <Zap className="w-5 h-5 text-gray-400" />
+                </div>
+                <p className="text-3xl font-bold text-gray-800">156</p>
+                <p className="text-xs text-gray-500 mt-1">Yêu cầu</p>
               </div>
-              <div className="text-3xl font-bold text-gray-900">{stats.needsProcessing}</div>
-              <div className="text-sm text-orange-600 mt-1">Cần xử lý ngay</div>
-            </div>
 
-            <div className="bg-white rounded-lg p-5 shadow-sm border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">ĐÃ PHÂN CÔNG</span>
-                <span className="text-blue-500">👤</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">{stats.assigned}</div>
-              <div className="text-sm text-gray-500 mt-1">Đang chờ nhận</div>
-            </div>
-
-            <div className="bg-white rounded-lg p-5 shadow-sm border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">ĐANG THU GOM</span>
-                <span className="text-purple-500">🚚</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">{stats.inProgress}</div>
-              <div className="text-sm text-purple-600 mt-1">Đang đi chuyển</div>
-            </div>
-
-            <div className="bg-white rounded-lg p-5 shadow-sm border">
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm text-gray-600">ĐÃ HOÀN THÀNH</span>
-                <span className="text-emerald-500">✅</span>
-              </div>
-              <div className="text-3xl font-bold text-gray-900">{stats.completed.toLocaleString()}</div>
-              <div className="text-sm text-emerald-600 mt-1">{stats.completedGrowth} tuần này</div>
-            </div>
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-3 gap-6 mb-6">
-            {/* Trend Chart */}
-            <div className="col-span-2 bg-white rounded-lg p-6 shadow-sm border">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Xu hướng thu gom</h2>
-                <p className="text-sm text-gray-600">Số lượng báo cáo hoàn thành trong 7 ngày qua</p>
-              </div>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={trendData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="day" stroke="#9ca3af" />
-                  <YAxis stroke="#9ca3af" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="value" stroke="#10b981" strokeWidth={3} fill="#d1fae5" fillOpacity={0.3} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Pie Chart */}
-            <div className="bg-white rounded-lg p-6 shadow-sm border">
-              <div className="mb-4">
-                <h2 className="text-lg font-semibold text-gray-900">Phân tích loại rác</h2>
-                <p className="text-sm text-gray-600">Tỷ lệ theo danh mục</p>
-              </div>
-              <ResponsiveContainer width="100%" height={250}>
-                <PieChart>
-                  <Pie
-                    data={wasteTypeData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {wasteTypeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex justify-center gap-4 mt-4">
-                {wasteTypeData.map((item, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                    <span className="text-sm text-gray-600">{item.name}</span>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Chờ phân công
+                  </span>
+                  <div className="w-5 h-5 rounded-full bg-orange-100 flex items-center justify-center">
+                    <span className="text-xs font-bold text-orange-600">!</span>
                   </div>
-                ))}
+                </div>
+                <p className="text-3xl font-bold text-gray-800">42</p>
+                <p className="text-xs text-orange-600 mt-1">Cần xử lý ngay</p>
               </div>
-            </div>
-          </div>
 
-          {/* Employee Performance */}
-          <div className="bg-white rounded-lg p-6 shadow-sm border">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-lg font-semibold text-gray-900">Hiệu suất nhân viên</h2>
-                <p className="text-sm text-gray-600">Top 5 nhân viên thu gom xuất sắc nhất</p>
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Đã phân công
+                  </span>
+                  <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center">
+                    <Users2 className="w-3 h-3 text-blue-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-gray-800">28</p>
+                <p className="text-xs text-blue-600 mt-1">Đang chờ nhân viên</p>
               </div>
-              <button className="text-emerald-600 text-sm font-medium hover:underline">
-                Xem tất cả
-              </button>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Đang thu gom
+                  </span>
+                  <div className="w-5 h-5 rounded-full bg-purple-100 flex items-center justify-center">
+                    <Truck className="w-3 h-3 text-purple-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-gray-800">14</p>
+                <p className="text-xs text-purple-600 mt-1">Đang di chuyển</p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                    Đã hoàn thành
+                  </span>
+                  <div className="w-5 h-5 rounded-full bg-green-100 flex items-center justify-center">
+                    <CheckCircle className="w-3 h-3 text-green-600" />
+                  </div>
+                </div>
+                <p className="text-3xl font-bold text-gray-800">1,240</p>
+                <p className="text-xs text-green-600 mt-1">Tổng yêu cầu</p>
+              </div>
             </div>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={employeeData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" stroke="#9ca3af" />
-                <YAxis stroke="#9ca3af" />
-                <Tooltip />
-                <Bar dataKey="collections" fill="#10b981" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  Xu hướng thu gom
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Số lượng báo cáo rác hoàn thành trong 7 ngày qua
+                </p>
+
+                <svg viewBox="0 0 800 300" className="w-full h-64 mt-4">
+                  <defs>
+                    <linearGradient
+                      id="areaGradient"
+                      x1="0%"
+                      y1="0%"
+                      x2="0%"
+                      y2="100%"
+                    >
+                      <stop
+                        offset="0%"
+                        style={{ stopColor: "#10b981", stopOpacity: 0.2 }}
+                      />
+                      <stop
+                        offset="100%"
+                        style={{ stopColor: "#10b981", stopOpacity: 0 }}
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  <g transform="translate(60, 20)">
+                    <polyline
+                      points="0,180 80,140 160,120 240,100 320,80 400,120 480,140 560,100 640,80"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                    />
+                    <polygon
+                      points="0,180 80,140 160,120 240,100 320,80 400,120 480,140 560,100 640,80 640,250 0,250"
+                      fill="url(#areaGradient)"
+                    />
+
+                    <circle cx="0" cy="180" r="4" fill="#10b981" />
+                    <circle cx="80" cy="140" r="4" fill="#10b981" />
+                    <circle cx="160" cy="120" r="4" fill="#10b981" />
+                    <circle cx="240" cy="100" r="4" fill="#10b981" />
+                    <circle cx="320" cy="80" r="4" fill="#10b981" />
+                    <circle cx="400" cy="120" r="4" fill="#10b981" />
+                    <circle cx="480" cy="140" r="4" fill="#10b981" />
+                    <circle cx="560" cy="100" r="4" fill="#10b981" />
+                    <circle cx="640" cy="80" r="4" fill="#10b981" />
+
+                    <line
+                      x1="0"
+                      y1="230"
+                      x2="640"
+                      y2="230"
+                      stroke="#e5e7eb"
+                      strokeWidth="1"
+                    />
+
+                    <text
+                      x="0"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      Thứ 2
+                    </text>
+                    <text
+                      x="80"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      Thứ 3
+                    </text>
+                    <text
+                      x="160"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      Thứ 4
+                    </text>
+                    <text
+                      x="240"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      Thứ 5
+                    </text>
+                    <text
+                      x="320"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      Thứ 6
+                    </text>
+                    <text
+                      x="400"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      Thứ 7
+                    </text>
+                    <text
+                      x="480"
+                      y="250"
+                      fontSize="14"
+                      fill="#9ca3af"
+                      textAnchor="middle"
+                    >
+                      CN
+                    </text>
+
+                    <text
+                      x="-40"
+                      y="180"
+                      fontSize="12"
+                      fill="#9ca3af"
+                      textAnchor="end"
+                    >
+                      0
+                    </text>
+                    <text
+                      x="-40"
+                      y="100"
+                      fontSize="12"
+                      fill="#9ca3af"
+                      textAnchor="end"
+                    >
+                      25
+                    </text>
+                    <text
+                      x="-40"
+                      y="20"
+                      fontSize="12"
+                      fill="#9ca3af"
+                      textAnchor="end"
+                    >
+                      45
+                    </text>
+                  </g>
+                </svg>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <h3 className="text-lg font-bold text-gray-800 mb-2">
+                  Phân tích loại rác
+                </h3>
+                <p className="text-sm text-gray-600 mb-6">
+                  Tỷ lệ theo danh mục
+                </p>
+
+                <div className="flex items-center justify-center mb-8">
+                  <svg viewBox="0 0 200 200" className="w-32 h-32">
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="80"
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="30"
+                      strokeDasharray="150.8 502.4"
+                      transform="rotate(-90 100 100)"
+                    />
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="80"
+                      fill="none"
+                      stroke="#f97316"
+                      strokeWidth="30"
+                      strokeDasharray="125.6 502.4"
+                      strokeDashoffset="-150.8"
+                      transform="rotate(-90 100 100)"
+                    />
+                    <circle
+                      cx="100"
+                      cy="100"
+                      r="80"
+                      fill="none"
+                      stroke="#3b82f6"
+                      strokeWidth="30"
+                      strokeDasharray="226 502.4"
+                      strokeDashoffset="-276.4"
+                      transform="rotate(-90 100 100)"
+                    />
+                  </svg>
+                </div>
+
+                <div className="flex items-center justify-center gap-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    <span className="text-sm text-gray-700">Giấy</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                    <span className="text-sm text-gray-700">Nhựa</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                    <span className="text-sm text-gray-700">Kim loại</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-1">
+                    Hiệu suất nhân viên
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Top 5 nhân viên thu gom xuất sắc nhất
+                  </p>
+                </div>
+                <button className="text-sm text-green-600 hover:text-green-700 font-medium">
+                  Xem tất cả
+                </button>
+              </div>
+
+              <svg viewBox="0 0 900 250" className="w-full h-48">
+                <g transform="translate(60, 20)">
+                  <rect
+                    x="0"
+                    y="60"
+                    width="80"
+                    height="120"
+                    fill="#10b981"
+                    rx="4"
+                  />
+                  <rect
+                    x="140"
+                    y="100"
+                    width="80"
+                    height="80"
+                    fill="#10b981"
+                    rx="4"
+                  />
+                  <rect
+                    x="280"
+                    y="130"
+                    width="80"
+                    height="50"
+                    fill="#10b981"
+                    rx="4"
+                  />
+                  <rect
+                    x="420"
+                    y="145"
+                    width="80"
+                    height="35"
+                    fill="#10b981"
+                    rx="4"
+                  />
+                  <rect
+                    x="560"
+                    y="160"
+                    width="80"
+                    height="20"
+                    fill="#10b981"
+                    rx="4"
+                  />
+
+                  <line
+                    x1="0"
+                    y1="190"
+                    x2="640"
+                    y2="190"
+                    stroke="#e5e7eb"
+                    strokeWidth="1"
+                  />
+
+                  <text
+                    x="40"
+                    y="200"
+                    fontSize="14"
+                    fill="#9ca3af"
+                    textAnchor="middle"
+                  >
+                    Nguyễn Văn A
+                  </text>
+                  <text
+                    x="180"
+                    y="200"
+                    fontSize="14"
+                    fill="#9ca3af"
+                    textAnchor="middle"
+                  >
+                    Trần Thị B
+                  </text>
+                  <text
+                    x="320"
+                    y="200"
+                    fontSize="14"
+                    fill="#9ca3af"
+                    textAnchor="middle"
+                  >
+                    Lê Văn C
+                  </text>
+                  <text
+                    x="460"
+                    y="200"
+                    fontSize="14"
+                    fill="#9ca3af"
+                    textAnchor="middle"
+                  >
+                    Phạm Minh D
+                  </text>
+                  <text
+                    x="600"
+                    y="200"
+                    fontSize="14"
+                    fill="#9ca3af"
+                    textAnchor="middle"
+                  >
+                    Hoàng Thị E
+                  </text>
+
+                  <text
+                    x="40"
+                    y="50"
+                    fontSize="14"
+                    fill="#374151"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                  >
+                    120
+                  </text>
+                  <text
+                    x="180"
+                    y="90"
+                    fontSize="14"
+                    fill="#374151"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                  >
+                    95
+                  </text>
+                  <text
+                    x="320"
+                    y="120"
+                    fontSize="14"
+                    fill="#374151"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                  >
+                    78
+                  </text>
+                  <text
+                    x="460"
+                    y="135"
+                    fontSize="14"
+                    fill="#374151"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                  >
+                    68
+                  </text>
+                  <text
+                    x="600"
+                    y="150"
+                    fontSize="14"
+                    fill="#374151"
+                    textAnchor="middle"
+                    fontWeight="bold"
+                  >
+                    55
+                  </text>
+
+                  <text
+                    x="-40"
+                    y="190"
+                    fontSize="12"
+                    fill="#9ca3af"
+                    textAnchor="end"
+                  >
+                    0
+                  </text>
+                  <text
+                    x="-40"
+                    y="110"
+                    fontSize="12"
+                    fill="#9ca3af"
+                    textAnchor="end"
+                  >
+                    100
+                  </text>
+                  <text
+                    x="-40"
+                    y="30"
+                    fontSize="12"
+                    fill="#9ca3af"
+                    textAnchor="end"
+                  >
+                    120
+                  </text>
+                </g>
+              </svg>
+            </div>
           </div>
         </main>
       </div>
@@ -243,4 +501,4 @@ const AdminPage = () => {
   );
 };
 
-export default AdminPage;
+export default Dashboard;
