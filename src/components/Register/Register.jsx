@@ -1,18 +1,14 @@
 import { useState } from "react";
-import { Mail, Lock, Phone, User, Eye, EyeOff, Check } from "lucide-react";
+import { Lock, Phone, User, Eye, EyeOff, Check } from "lucide-react";
 
 function Register() {
   const [formData, setFormData] = useState({
     fullName: "",
     phone: "",
-    email: "",
     password: "",
-    confirmPassword: "",
-    agreeTerms: false,
   });
 
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -29,24 +25,8 @@ function Register() {
     e.preventDefault();
     setError("");
 
-    if (
-      !formData.fullName ||
-      !formData.phone ||
-      !formData.email ||
-      !formData.password ||
-      !formData.confirmPassword
-    ) {
+    if (!formData.fullName || !formData.phone || !formData.password) {
       setError("Vui lòng điền đầy đủ tất cả các trường");
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError("Mật khẩu xác nhận không trùng khớp");
-      return;
-    }
-
-    if (!formData.agreeTerms) {
-      setError("Vui lòng đồng ý với Quy định & Điều khoản");
       return;
     }
 
@@ -192,25 +172,6 @@ function Register() {
               </div>
             </div>
 
-            {/* Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="email@example.com"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
             {/* Password */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -242,62 +203,6 @@ function Register() {
               </div>
             </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Xác nhận mật khẩu
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
-                  disabled={loading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  disabled={loading}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-            </div>
-
-            {/* Terms Checkbox */}
-            <div className="flex items-start pt-2">
-              <input
-                type="checkbox"
-                id="terms"
-                name="agreeTerms"
-                checked={formData.agreeTerms}
-                onChange={handleChange}
-                className="mt-1 h-4 w-4 text-emerald-500 border-gray-300 rounded focus:ring-emerald-400 cursor-pointer"
-                disabled={loading}
-              />
-              <label
-                htmlFor="terms"
-                className="ml-3 text-sm text-gray-600 cursor-pointer"
-              >
-                Tôi đồng ý với{" "}
-                <a
-                  href="#"
-                  className="font-medium text-emerald-600 hover:text-emerald-700"
-                >
-                  Quy định & Điều khoản
-                </a>
-              </label>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -311,7 +216,7 @@ function Register() {
             <p className="text-center text-sm text-gray-600 pt-4">
               Bạn đã có tài khoản?{" "}
               <a
-                href="#"
+                href="/login"
                 className="font-medium text-emerald-600 hover:text-emerald-700"
               >
                 Đăng nhập ngay

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import {
   Phone,
   Lock,
@@ -7,12 +8,15 @@ import {
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
+import { loginUser } from "../../api/auth";
 
-function Login({ onNavigate }) {
+function Login() {
+  const navigate = useNavigate();
+  const { login: setAuthUser } = useAuth();
   const [formData, setFormData] = useState({
     phone: "",
     password: "",
-    rememberMe: false,
   });
 
   const [showPassword, setShowPassword] = useState(false);
@@ -21,36 +25,50 @@ function Login({ onNavigate }) {
   const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData({
-      ...formData,
-      [name]: type === "checkbox" ? checked : value,
-    });
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!formData.phone || !formData.password) {
+    if (!formData.phone.trim() || !formData.password.trim()) {
       setError("Vui lòng điền số điện thoại và mật khẩu");
       return;
     }
 
-    if (formData.phone.length < 10) {
-      setError("Số điện thoại không hợp lệ");
+    if (!/^\d{10}$/.test(formData.phone.trim())) {
+      setError("Số điện thoại phải gồm đúng 10 chữ số");
       return;
     }
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setSuccess(true);
-      setTimeout(() => {
-        onNavigate("home");
-      }, 2000);
+      const user = await loginUser(
+        formData.phone.trim(),
+        formData.password.trim(),
+      );
+
+      // Điều hướng theo role sau khi đăng nhập
+      const roleId = user.role || user.roleId;
+      let target = "/";
+      if (roleId === "r1") {
+        target = "/admin"; // Admin
+      } else if (roleId === "r2") {
+        target = "/collector"; // Collector
+      } else if (roleId === "r3") {
+        target = "/citizen"; // Citizen
+      }
+
+      // Set auth và navigate ngay lập tức
+      setAuthUser(user);
+      navigate(target, { replace: true });
     } catch (err) {
-      setError("Đăng nhập thất bại. Vui lòng thử lại");
+      setError(err?.message || "Đăng nhập thất bại. Vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -214,27 +232,6 @@ function Login({ onNavigate }) {
               </div>
             </div>
 
-            {/* Remember Me */}
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  name="rememberMe"
-                  checked={formData.rememberMe}
-                  onChange={handleChange}
-                  className="h-4 w-4 text-emerald-500 border-gray-300 rounded focus:ring-emerald-400 cursor-pointer"
-                  disabled={loading}
-                />
-                <span className="text-sm text-gray-600">Ghi nhớ đăng nhập</span>
-              </label>
-              <a
-                href="#"
-                className="text-sm font-medium text-emerald-600 hover:text-emerald-700"
-              >
-                Quên mật khẩu?
-              </a>
-            </div>
-
             {/* Submit Button */}
             <button
               type="submit"
@@ -247,53 +244,13 @@ function Login({ onNavigate }) {
             {/* Sign Up Link */}
             <p className="text-center text-sm text-gray-600 pt-4">
               Bạn chưa có tài khoản?{" "}
-              <button
-                type="button"
-                onClick={() => onNavigate("register")}
+              <Link
+                to="/register"
                 className="font-medium text-emerald-600 hover:text-emerald-700"
               >
                 Đăng ký tại đây
-              </button>
+              </Link>
             </p>
-
-            {/* Help Section */}
-            <div className="pt-6 border-t border-gray-200 flex items-center justify-center space-x-6 text-xs text-gray-600">
-              <a
-                href="#"
-                className="hover:text-emerald-600 transition flex items-center space-x-1"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zm-11-1a1 1 0 11-2 0 1 1 0 012 0zM8 9a1 1 0 100-2 1 1 0 000 2zm5-1a1 1 0 11-2 0 1 1 0 012 0z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Hỗ trợ kỹ thuật</span>
-              </a>
-              <a
-                href="#"
-                className="hover:text-emerald-600 transition flex items-center space-x-1"
-              >
-                <svg
-                  className="h-4 w-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" />
-                  <path
-                    fillRule="evenodd"
-                    d="M4 5a2 2 0 012-2 1 1 0 000 2h10a1 1 0 100-2 2 2 0 012 2v10a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 100 2h6a1 1 0 100-2H7z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>Hướng dẫn sử dụng</span>
-              </a>
-            </div>
           </form>
         </div>
       </div>
