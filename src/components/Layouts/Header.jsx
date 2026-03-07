@@ -10,9 +10,7 @@ function Header() {
   const homePath = isAuthenticated
     ? user?.role === ROLES.ADMIN
       ? "/admin"
-      : user?.role === ROLES.CITIZEN
-        ? "/citizen"
-        : "/"
+      : "/"
     : "/";
 
   const handleLogout = () => {
@@ -42,6 +40,12 @@ function Header() {
             </Link>
             {isAuthenticated && user?.role === ROLES.CITIZEN && (
               <>
+                <Link
+                  to="/report-waste"
+                  className="text-gray-900 font-medium hover:text-green-500 transition"
+                >
+                  Báo cáo rác
+                </Link>
                 <Link
                   to="/complaints"
                   className="text-gray-900 font-medium hover:text-green-500 transition"
