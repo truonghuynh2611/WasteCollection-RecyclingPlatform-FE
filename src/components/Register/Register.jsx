@@ -1,9 +1,13 @@
 import { useState } from "react";
-import { Lock, Phone, User, Eye, EyeOff, Check } from "lucide-react";
+import { Lock, Phone, User, Eye, EyeOff, Check, Mail } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { registerUser } from "../../api/auth";
 
 function Register() {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: "",
+    email: "",
     phone: "",
     password: "",
   });
@@ -25,20 +29,20 @@ function Register() {
     e.preventDefault();
     setError("");
 
-    if (!formData.fullName || !formData.phone || !formData.password) {
+    if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
       setError("Vui lòng điền đầy đủ tất cả các trường");
       return;
     }
 
     setLoading(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await registerUser(formData);
       setSuccess(true);
       setTimeout(() => {
-        window.location.href = "/";
+        navigate("/login");
       }, 2000);
     } catch (err) {
-      setError("Đăng ký thất bại. Vui lòng thử lại");
+      setError(err?.message || "Đăng ký thất bại. Vui lòng thử lại");
     } finally {
       setLoading(false);
     }
@@ -147,6 +151,25 @@ function Register() {
                   value={formData.fullName}
                   onChange={handleChange}
                   placeholder="Nguyễn Văn A..."
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
+                  disabled={loading}
+                />
+              </div>
+            </div>
+
+            {/* Email */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="name@example.com"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
                   disabled={loading}
                 />

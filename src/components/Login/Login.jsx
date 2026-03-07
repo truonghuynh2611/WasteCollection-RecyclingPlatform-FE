@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
-  Phone,
   Lock,
   Eye,
   EyeOff,
   CheckCircle,
   AlertCircle,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { loginUser } from "../../api/auth";
@@ -15,14 +15,13 @@ function Login() {
   const navigate = useNavigate();
   const { login: setAuthUser } = useAuth();
   const [formData, setFormData] = useState({
-    phone: "",
+    email: "",
     password: "",
   });
 
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -36,36 +35,39 @@ function Login() {
     e.preventDefault();
     setError("");
 
-    if (!formData.phone.trim() || !formData.password.trim()) {
-      setError("Vui lòng điền số điện thoại và mật khẩu");
+    if (!formData.email.trim() || !formData.password.trim()) {
+      setError("Vui lòng điền email và mật khẩu");
       return;
     }
 
-    if (!/^\d{10}$/.test(formData.phone.trim())) {
-      setError("Số điện thoại phải gồm đúng 10 chữ số");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      setError("Định dạng email không hợp lệ");
       return;
     }
 
     setLoading(true);
     try {
-      const user = await loginUser(
-        formData.phone.trim(),
+      const authData = await loginUser(
+        formData.email.trim(),
         formData.password.trim(),
       );
 
-      // Điều hướng theo role sau khi đăng nhập
-      const roleId = user.role || user.roleId;
+      // Điều hướng theo role sau khi đăng nhập (từ authData trả về dựa theo token hoặc role)
+      // Thông thường BE trả về role dạng "Citizen", "Collector", "Admin"
+      const role = authData.role || authData.user?.role || "Citizen";
       let target = "/";
-      if (roleId === "r1") {
-        target = "/admin"; // Admin
-      } else if (roleId === "r2") {
-        target = "/collector"; // Collector
-      } else if (roleId === "r3") {
-        target = "/citizen"; // Citizen
+      if (role === "Admin" || authData.roleId === "r1") {
+        target = "/admin";
+      } else if (role === "Collector" || authData.roleId === "r2") {
+        target = "/collector";
+      } else if (role === "Manager" || authData.roleId === "r5") {
+        target = "/manager";
+      } else {
+        target = "/"; // Homepage for Citizen
       }
 
-      // Set auth và navigate ngay lập tức
-      setAuthUser(user);
+      // Trả lại toàn bộ authData (gồm cả token và user details)
+      setAuthUser(authData);
       navigate(target, { replace: true });
     } catch (err) {
       setError(err?.message || "Đăng nhập thất bại. Vui lòng thử lại");
@@ -162,17 +164,7 @@ function Login() {
             </p>
           </div>
 
-          {success && (
-            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start space-x-3">
-              <CheckCircle className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-emerald-900">
-                  Đăng nhập thành công!
-                </p>
-                <p className="text-sm text-emerald-700">Đang chuyển hướng...</p>
-              </div>
-            </div>
-          )}
+
 
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
@@ -182,19 +174,19 @@ function Login() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Phone Number */}
+            {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Số điện thoại đăng nhập
+                Email đăng nhập
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
-                  placeholder="Nhập số điện thoại của bạn"
+                  placeholder="Nhập email của bạn"
                   className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
                   disabled={loading}
                 />
