@@ -53,7 +53,7 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <p className="text-3xl font-bold text-gray-800">28</p>
-                <p className="text-xs text-blue-600 mt-1">Đang chờ nhân viên</p>
+                <p className="text-xs text-blue-600 mt-1">Đang chờ người thu gom</p>
               </div>
 
               <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
