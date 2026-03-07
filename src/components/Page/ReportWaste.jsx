@@ -141,6 +141,11 @@ function ReportWaste() {
     return "—";
   };
 
+  const handleSelectAddress = () => {
+    // Placeholder for map selection logic
+    console.log("Mở bản đồ chọn địa chỉ...");
+  };
+
   if (!isAuthenticated) return null;
 
   return (
@@ -182,15 +187,26 @@ function ReportWaste() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Địa chỉ / Vị trí thu gom <span className="text-red-500">*</span>
                 </label>
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-3 text-gray-400" size={18} />
+                <div className="relative group">
+                  <MapPin
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors"
+                    size={20}
+                  />
                   <input
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="VD: 123 Lê Lợi, Quận 1, TP.HCM"
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+                    className="w-full pl-12 pr-36 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900 placeholder-gray-400"
                   />
+                  <button
+                    type="button"
+                    onClick={handleSelectAddress}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-4 py-2 bg-white text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-600 hover:text-white border border-emerald-100 hover:border-emerald-600 shadow-sm transition-all flex items-center gap-1.5 h-[calc(100%-12px)]"
+                  >
+                    <Recycle size={12} className="rotate-45" />
+                    Chọn khu vực
+                  </button>
                 </div>
               </div>
 

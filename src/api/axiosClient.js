@@ -12,7 +12,7 @@ const axiosClient = axios.create({
 // Thêm Interceptor để gán JWT token vào header của mọi request
 axiosClient.interceptors.request.use(
   (config) => {
-    const storedAuth = localStorage.getItem("auth_user");
+    const storedAuth = localStorage.getItem("waste_auth_user");
     if (storedAuth) {
       try {
         const authData = JSON.parse(storedAuth);

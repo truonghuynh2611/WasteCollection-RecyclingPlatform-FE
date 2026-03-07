@@ -52,6 +52,7 @@ export function AuthProvider({ children }) {
       full_name: userFromApi.fullName || userFromApi.full_name,
       phone: userFromApi.phone,
       role: roleName,
+      roleName: roleName, // Đảm bảo roleName luôn tồn tại cho Header
       token: authData.token, // Cần lưu token để AxiosClient đọc được
     };
     
