@@ -65,6 +65,14 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
   };
 
+  const updateUser = (newData) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...newData };
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   const isRole = (roleToCheck) => {
     if (!user) return false;
     // Hỗ trợ cả string role và old ID
@@ -83,6 +91,7 @@ export function AuthProvider({ children }) {
     user,
     login,
     logout,
+    updateUser,
     isAuthenticated: !!user,
     isAdmin,
     isCollector,

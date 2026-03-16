@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, MapPin, Send, Filter, Recycle } from "lucide-react";
+import { Camera, MapPin, Send, Filter, Recycle, Navigation, ArrowRight } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { createWasteReport, getWasteReports } from "../../api/waste";
+import { getAllDistricts, getDistrictDetails } from "../../api/district";
 
 const RANKS = [
   { name: "Đồng", min: 0 },
@@ -80,7 +81,15 @@ function ReportWaste() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [selectedWasteType, setSelectedWasteType] = useState("Nhựa");
-  const [location, setLocation] = useState("");
+  
+  // Address states initialized from user profile if available
+  const [districts, setDistricts] = useState([]);
+  const [areas, setAreas] = useState([]);
+  const [selectedDistrictId, setSelectedDistrictId] = useState(user?.districtId || "");
+  const [selectedAreaId, setSelectedAreaId] = useState(user?.areaId || "");
+  const [streetAddress, setStreetAddress] = useState(user?.streetAddress || "");
+  const [coords, setCoords] = useState(null); // { lat, lon }
+  const [location, setLocation] = useState(""); // Still used for internal ref or fallback
   const [description, setDescription] = useState("");
 
   const userPoints = user?.total_points ?? 0;
@@ -110,17 +119,63 @@ function ReportWaste() {
     return () => { cancelled = true; };
   }, [isAuthenticated, user?.id, navigate]);
 
+  // Fetch districts on mount
+  useEffect(() => {
+    async function fetchDistricts() {
+      try {
+        const res = await getAllDistricts();
+        if (res.success) {
+          setDistricts(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch districts", err);
+      }
+    }
+    fetchDistricts();
+  }, []);
+
+  // Fetch areas when district changes
+  useEffect(() => {
+    if (!selectedDistrictId) {
+      setAreas([]);
+      setSelectedAreaId("");
+      return;
+    }
+    async function fetchAreas() {
+      try {
+        const res = await getDistrictDetails(selectedDistrictId);
+        if (res.success) {
+          setAreas(res.data.areas || []);
+          // Only clear areaId if the current selectedAreaId is not found in the new area list
+          // This prevents clearing the pre-filled value from the user profile on initial load.
+          const areaExists = res.data.areas?.some(a => String(a.areaId) === String(selectedAreaId));
+          if (!areaExists) {
+            setSelectedAreaId("");
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch areas", err);
+      }
+    }
+    fetchAreas();
+  }, [selectedDistrictId]);
+
   const handleSubmit = async () => {
-    if (!user?.id || !location?.trim()) return;
+    const districtName = districts.find(d => String(d.districtId) === String(selectedDistrictId))?.districtName || "";
+    const areaName = areas.find(a => String(a.areaId) === String(selectedAreaId))?.areaName || "";
+    const fullAddress = `${streetAddress}${streetAddress && areaName ? ", " : ""}${areaName}${areaName && districtName ? ", " : ""}${districtName}`;
+
+    if (!user?.id || !fullAddress.trim()) return;
     setSubmitting(true);
     try {
       await createWasteReport({
         citizenId: user.id,
-        address: location.trim(),
+        address: fullAddress.trim(),
         waste_type: selectedWasteType,
         description: description.trim() || undefined,
       });
       setDescription("");
+      setStreetAddress("");
       const data = await getWasteReports();
       const mine = data.filter((r) => String(r.citizenId) === String(user.id));
       setReports(mine);
@@ -139,6 +194,39 @@ function ReportWaste() {
     const s = (report.status || "").toLowerCase();
     if (s === "completed" || s === "collected") return "+10";
     return "—";
+  };
+
+  const openGoogleMaps = async () => {
+    const districtName = districts.find(d => String(d.districtId) === String(selectedDistrictId))?.districtName || "";
+    const areaName = areas.find(a => String(a.areaId) === String(selectedAreaId))?.areaName || "";
+    const fullAddress = `${streetAddress}${streetAddress && areaName ? ", " : ""}${areaName}${areaName && districtName ? ", " : ""}${districtName}`;
+    
+    if (!fullAddress.trim()) {
+      alert("Vui lòng nhập địa chỉ trước khi định vị.");
+      return;
+    }
+    
+    // Fetch coordinates from Nominatim (OpenStreetMap)
+    try {
+      // Stage 1: Try full address
+      let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress + ", Hồ Chí Minh")}&limit=1`);
+      let data = await response.json();
+      
+      // Stage 2: Fallback to Area + District if full address fails (OpenStreetMap can be picky with house numbers)
+      if (!data || data.length === 0) {
+        const fallbackAddress = `${areaName}, ${districtName}, Hồ Chí Minh`;
+        response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fallbackAddress)}&limit=1`);
+        data = await response.json();
+      }
+
+      if (data && data.length > 0) {
+        setCoords({ lat: data[0].lat, lon: data[0].lon });
+      } else {
+        alert("Không tìm thấy toạ độ cho địa chỉ này trên bản đồ. Bạn hãy thử chọn lại Quận/Phường chính xác hơn, hoặc vẫn có thể gửi báo cáo bình thường.");
+      }
+    } catch (error) {
+      console.error("Geocoding failed:", error);
+    }
   };
 
   const handleSelectAddress = () => {
@@ -183,31 +271,83 @@ function ReportWaste() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Địa chỉ / Vị trí thu gom <span className="text-red-500">*</span>
-                </label>
-                <div className="relative group">
-                  <MapPin
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors"
-                    size={20}
-                  />
-                  <input
-                    type="text"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    placeholder="VD: 123 Lê Lợi, Quận 1, TP.HCM"
-                    className="w-full pl-12 pr-36 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSelectAddress}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 px-4 py-2 bg-white text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-600 hover:text-white border border-emerald-100 hover:border-emerald-600 shadow-sm transition-all flex items-center gap-1.5 h-[calc(100%-12px)]"
-                  >
-                    <Recycle size={12} className="rotate-45" />
-                    Chọn khu vực
-                  </button>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Số nhà, tên đường <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative group">
+                    <MapPin
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors"
+                      size={20}
+                    />
+                    <input
+                      type="text"
+                      value={streetAddress}
+                      onChange={(e) => setStreetAddress(e.target.value)}
+                      placeholder="VD: 123 Lê Lợi"
+                      className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900 placeholder-gray-400"
+                    />
+                  </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Quận/Huyện <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedDistrictId}
+                    onChange={(e) => setSelectedDistrictId(e.target.value)}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900"
+                  >
+                    <option value="">Chọn Quận/Huyện</option>
+                    {districts.map((d) => (
+                      <option key={d.districtId} value={d.districtId}>
+                        {d.districtName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phường/Xã <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedAreaId}
+                    onChange={(e) => setSelectedAreaId(e.target.value)}
+                    disabled={!selectedDistrictId}
+                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900 disabled:opacity-50"
+                  >
+                    <option value="">Chọn Phường/Xã</option>
+                    {areas.map((a) => (
+                      <option key={a.areaId} value={a.areaId}>
+                        {a.areaName}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <button 
+                  type="button"
+                  onClick={openGoogleMaps}
+                  className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all rounded-2xl py-3 font-bold text-gray-600 text-sm shadow-sm"
+                >
+                  <Navigation size={18} /> Định vị vị trí
+                </button>
+
+                {coords && (
+                  <div 
+                    onClick={() => window.open(`https://www.google.com/maps?q=${coords.lat},${coords.lon}`, "_blank")}
+                    className="flex items-center justify-center gap-2 mt-2 p-2 bg-emerald-50 border border-emerald-100 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors group"
+                  >
+                    <MapPin size={14} className="text-emerald-500" />
+                    <span className="text-xs font-bold text-emerald-700">
+                      Toạ độ: <span className="text-emerald-900">{parseFloat(coords.lat).toFixed(6)}, {parseFloat(coords.lon).toFixed(6)}</span>
+                    </span>
+                    <ArrowRight size={12} className="text-emerald-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -255,7 +395,7 @@ function ReportWaste() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !location?.trim()}
+                disabled={submitting || !streetAddress?.trim() || !selectedAreaId || !selectedDistrictId}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
               >
                 <Send size={18} />
