@@ -1,6 +1,7 @@
-import { Recycle, LogOut, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, ROLES } from "../../contexts/AuthContext";
+import logo from "../../assets/images/logo.png";
 
 function Header() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -24,7 +25,7 @@ function Header() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
             <Link to={homePath}>
-              <Recycle className="h-8 w-8 text-green-500" />
+              <img src={logo} alt="Green Vietnam Logo" className="h-10 w-10 object-contain" />
             </Link>
             <Link to={homePath} className="text-xl font-bold text-gray-900">
               Green Vietnam
@@ -46,12 +47,7 @@ function Header() {
                 >
                   Báo cáo rác
                 </Link>
-                <Link
-                  to="/complaints"
-                  className="text-gray-900 font-medium hover:text-green-500 transition"
-                >
-                  Khiếu nại
-                </Link>
+
                 <Link
                   to="/rewards"
                   className="text-gray-900 font-medium hover:text-green-500 transition"
@@ -68,7 +64,10 @@ function Header() {
             )}
             {isAuthenticated ? (
               <>
-                <span className="flex items-center gap-2 text-gray-600 text-sm">
+                <Link 
+                  to="/profile"
+                  className="flex items-center gap-2 text-gray-600 text-sm hover:opacity-80 transition"
+                >
                   <User className="h-4 w-4" />
                   <span className="font-medium text-gray-900">
                     {user?.full_name}
@@ -76,7 +75,7 @@ function Header() {
                   <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium">
                     {user?.roleName}
                   </span>
-                </span>
+                </Link>
                 <button
                   type="button"
                   onClick={handleLogout}

@@ -19,6 +19,9 @@ import CollectorSchedule from "./components/Collector/CollectorSchedule.jsx";
 import ManagerDashboard from "./components/Manager/ManagerDashboard.jsx";
 import ManagerCollector from "./components/Manager/ManagerCollector.jsx";
 import ManagerSchedule from "./components/Manager/ManagerSchedule.jsx";
+import Rewards from "./components/Page/Rewards.jsx";
+import Rankings from "./components/Page/Rankings.jsx";
+import Profile from "./components/Page/Profile.jsx";
 
 function App() {
   return (
@@ -103,11 +106,35 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  <Route
+                   <Route
                     path="/report-waste"
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.CITIZEN]}>
                         <ReportWaste />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/rewards"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.CITIZEN]}>
+                        <Rewards />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/rankings"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.CITIZEN]}>
+                        <Rankings />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/profile"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.CITIZEN, ROLES.ADMIN, ROLES.COLLECTOR, ROLES.AREA_MANAGER]}>
+                        <Profile />
                       </ProtectedRoute>
                     }
                   />
