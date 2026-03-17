@@ -1,17 +1,15 @@
-const BASE_URL = "http://localhost:3001";
+import axiosClient from "./axiosClient";
 
 // Hàm gửi báo cáo rác mới
 export const createWasteReport = async (reportData) => {
-  const response = await fetch(`${BASE_URL}/waste_reports`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(reportData),
-  });
-  return response.json();
+  // axiosClient sẽ tự động thêm Authorization header
+  // Khi gửi FormData, axios sẽ tự động set Content-Type là multipart/form-data
+  const response = await axiosClient.post("/WasteReport", reportData);
+  return response.data;
 };
 
 // Hàm lấy danh sách báo cáo rác
 export const getWasteReports = async () => {
-  const response = await fetch(`${BASE_URL}/waste_reports`);
-  return response.json();
+  const response = await axiosClient.get("/WasteReport");
+  return response.data;
 };

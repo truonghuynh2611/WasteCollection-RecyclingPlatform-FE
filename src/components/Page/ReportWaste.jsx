@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, MapPin, Send, Filter, Recycle, Navigation, ArrowRight } from "lucide-react";
+import { Camera, MapPin, Send, Filter, Recycle, ArrowRight } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { createWasteReport, getWasteReports } from "../../api/waste";
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
@@ -80,21 +80,34 @@ function ReportWaste() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedWasteType, setSelectedWasteType] = useState("Nhựa");
+  const [selectedWasteTypes, setSelectedWasteTypes] = useState(["Nhựa"]);
   
   // Address states initialized from user profile if available
   const [districts, setDistricts] = useState([]);
   const [areas, setAreas] = useState([]);
   const [selectedDistrictId, setSelectedDistrictId] = useState(user?.districtId || "");
   const [selectedAreaId, setSelectedAreaId] = useState(user?.areaId || "");
-  const [streetAddress, setStreetAddress] = useState(user?.streetAddress || "");
   const [coords, setCoords] = useState(null); // { lat, lon }
   const [location, setLocation] = useState(""); // Still used for internal ref or fallback
   const [description, setDescription] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const userPoints = user?.total_points ?? 0;
   const userRank = getRankFromPoints(userPoints).name;
   const { progress, needed, nextRank } = getRankProgress(userPoints);
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -161,26 +174,37 @@ function ReportWaste() {
   }, [selectedDistrictId]);
 
   const handleSubmit = async () => {
-    const districtName = districts.find(d => String(d.districtId) === String(selectedDistrictId))?.districtName || "";
-    const areaName = areas.find(a => String(a.areaId) === String(selectedAreaId))?.areaName || "";
-    const fullAddress = `${streetAddress}${streetAddress && areaName ? ", " : ""}${areaName}${areaName && districtName ? ", " : ""}${districtName}`;
-
-    if (!user?.id || !fullAddress.trim()) return;
+    if (!user?.id || !selectedAreaId) return;
+    
     setSubmitting(true);
     try {
-      await createWasteReport({
-        citizenId: user.id,
-        address: fullAddress.trim(),
-        waste_type: selectedWasteType,
-        description: description.trim() || undefined,
-      });
+      const formData = new FormData();
+      formData.append("CitizenId", user.id);
+      formData.append("AreaId", selectedAreaId);
+      formData.append("WasteType", selectedWasteTypes.join(", "));
+      formData.append("Description", description.trim());
+      formData.append("Latitude", coords?.lat || 0);
+      formData.append("Longitude", coords?.lon || 0);
+      
+      if (imageFile) {
+        formData.append("ImageFile", imageFile);
+      }
+
+      await createWasteReport(formData);
+
+      // Reset form
       setDescription("");
-      setStreetAddress("");
+      setImageFile(null);
+      setImagePreview(null);
+      setCoords(null);
+      
+      // Refresh list
       const data = await getWasteReports();
       const mine = data.filter((r) => String(r.citizenId) === String(user.id));
       setReports(mine);
     } catch (err) {
       console.error(err);
+      alert("Gửi báo cáo thất bại. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
     }
@@ -196,38 +220,6 @@ function ReportWaste() {
     return "—";
   };
 
-  const openGoogleMaps = async () => {
-    const districtName = districts.find(d => String(d.districtId) === String(selectedDistrictId))?.districtName || "";
-    const areaName = areas.find(a => String(a.areaId) === String(selectedAreaId))?.areaName || "";
-    const fullAddress = `${streetAddress}${streetAddress && areaName ? ", " : ""}${areaName}${areaName && districtName ? ", " : ""}${districtName}`;
-    
-    if (!fullAddress.trim()) {
-      alert("Vui lòng nhập địa chỉ trước khi định vị.");
-      return;
-    }
-    
-    // Fetch coordinates from Nominatim (OpenStreetMap)
-    try {
-      // Stage 1: Try full address
-      let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress + ", Hồ Chí Minh")}&limit=1`);
-      let data = await response.json();
-      
-      // Stage 2: Fallback to Area + District if full address fails (OpenStreetMap can be picky with house numbers)
-      if (!data || data.length === 0) {
-        const fallbackAddress = `${areaName}, ${districtName}, Hồ Chí Minh`;
-        response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fallbackAddress)}&limit=1`);
-        data = await response.json();
-      }
-
-      if (data && data.length > 0) {
-        setCoords({ lat: data[0].lat, lon: data[0].lon });
-      } else {
-        alert("Không tìm thấy toạ độ cho địa chỉ này trên bản đồ. Bạn hãy thử chọn lại Quận/Phường chính xác hơn, hoặc vẫn có thể gửi báo cáo bình thường.");
-      }
-    } catch (error) {
-      console.error("Geocoding failed:", error);
-    }
-  };
 
   const handleSelectAddress = () => {
     // Placeholder for map selection logic
@@ -264,32 +256,34 @@ function ReportWaste() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Hình ảnh hiện trường (tùy chọn)
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer">
-                  <Camera className="mx-auto text-gray-400 mb-2" size={28} />
-                  <p className="text-sm text-gray-500">Kéo thả ảnh hoặc nhấn để tải lên</p>
-                  <p className="text-xs text-gray-400 mt-1">AI sẽ gợi ý phân loại từ ảnh</p>
-                </div>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                  id="image-upload"
+                />
+                <label
+                  htmlFor="image-upload"
+                  className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer overflow-hidden relative min-h-[160px] flex flex-col items-center justify-center"
+                >
+                  {imagePreview ? (
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <>
+                      <Camera className="mx-auto text-gray-400 mb-2" size={28} />
+                      <p className="text-sm text-gray-500">Nhấn để tải ảnh lên</p>
+                      <p className="text-xs text-gray-400 mt-1">Hỗ trợ định dạng: JPG, PNG</p>
+                    </>
+                  )}
+                </label>
               </div>
 
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Số nhà, tên đường <span className="text-red-500">*</span>
-                  </label>
-                  <div className="relative group">
-                    <MapPin
-                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-emerald-500 transition-colors"
-                      size={20}
-                    />
-                    <input
-                      type="text"
-                      value={streetAddress}
-                      onChange={(e) => setStreetAddress(e.target.value)}
-                      placeholder="VD: 123 Lê Lợi"
-                      className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900 placeholder-gray-400"
-                    />
-                  </div>
-                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -311,7 +305,7 @@ function ReportWaste() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phường/Xã <span className="text-red-500">*</span>
+                    Khu vực <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={selectedAreaId}
@@ -319,7 +313,7 @@ function ReportWaste() {
                     disabled={!selectedDistrictId}
                     className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-gray-900 disabled:opacity-50"
                   >
-                    <option value="">Chọn Phường/Xã</option>
+                    <option value="">Chọn khu vực</option>
                     {areas.map((a) => (
                       <option key={a.areaId} value={a.areaId}>
                         {a.areaName}
@@ -328,26 +322,6 @@ function ReportWaste() {
                   </select>
                 </div>
 
-                <button 
-                  type="button"
-                  onClick={openGoogleMaps}
-                  className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-emerald-500 hover:text-emerald-600 hover:bg-emerald-50 transition-all rounded-2xl py-3 font-bold text-gray-600 text-sm shadow-sm"
-                >
-                  <Navigation size={18} /> Định vị vị trí
-                </button>
-
-                {coords && (
-                  <div 
-                    onClick={() => window.open(`https://www.google.com/maps?q=${coords.lat},${coords.lon}`, "_blank")}
-                    className="flex items-center justify-center gap-2 mt-2 p-2 bg-emerald-50 border border-emerald-100 rounded-xl cursor-pointer hover:bg-emerald-100 transition-colors group"
-                  >
-                    <MapPin size={14} className="text-emerald-500" />
-                    <span className="text-xs font-bold text-emerald-700">
-                      Toạ độ: <span className="text-emerald-900">{parseFloat(coords.lat).toFixed(6)}, {parseFloat(coords.lon).toFixed(6)}</span>
-                    </span>
-                    <ArrowRight size={12} className="text-emerald-400 group-hover:translate-x-1 transition-transform" />
-                  </div>
-                )}
               </div>
 
               <div>
@@ -355,27 +329,38 @@ function ReportWaste() {
                   Phân loại rác tại nguồn
                 </label>
                 <div className="grid grid-cols-3 gap-3">
-                  {WASTE_TYPES.map((type) => (
-                    <button
-                      key={type.id}
-                      type="button"
-                      onClick={() => setSelectedWasteType(type.id)}
-                      className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
-                        selectedWasteType === type.id
-                          ? "border-emerald-500 bg-emerald-50"
-                          : "border-gray-200 hover:border-gray-300"
-                      }`}
-                    >
-                      <span className="text-2xl mb-1">{type.icon}</span>
-                      <span
-                        className={`text-sm font-medium ${
-                          selectedWasteType === type.id ? "text-emerald-700" : "text-gray-700"
+                  {WASTE_TYPES.map((type) => {
+                    const isSelected = selectedWasteTypes.includes(type.id);
+                    return (
+                      <button
+                        key={type.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (selectedWasteTypes.length > 1) {
+                              setSelectedWasteTypes(selectedWasteTypes.filter(t => t !== type.id));
+                            }
+                          } else {
+                            setSelectedWasteTypes([...selectedWasteTypes, type.id]);
+                          }
+                        }}
+                        className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                          isSelected
+                            ? "border-emerald-500 bg-emerald-50"
+                            : "border-gray-200 hover:border-gray-300"
                         }`}
                       >
-                        {type.label}
-                      </span>
-                    </button>
-                  ))}
+                        <span className="text-2xl mb-1">{type.icon}</span>
+                        <span
+                          className={`text-sm font-medium ${
+                            isSelected ? "text-emerald-700" : "text-gray-700"
+                          }`}
+                        >
+                          {type.label}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -395,7 +380,7 @@ function ReportWaste() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !streetAddress?.trim() || !selectedAreaId || !selectedDistrictId}
+                disabled={submitting || !selectedAreaId || !selectedDistrictId || selectedWasteTypes.length === 0}
                 className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
               >
                 <Send size={18} />
@@ -516,7 +501,7 @@ function ReportWaste() {
                   Mẹo tích điểm nhanh
                 </h4>
                 <p className="text-sm text-emerald-800">
-                  Điền đúng địa chỉ và phân loại rác chính xác để được thu gom nhanh và
+                  Chọn đúng khu vực và phân loại rác chính xác để được thu gom nhanh và
                   nhận điểm thưởng khi đơn hoàn thành.
                 </p>
               </div>
