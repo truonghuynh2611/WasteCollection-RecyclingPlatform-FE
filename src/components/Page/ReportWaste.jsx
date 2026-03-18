@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, MapPin, Send, Filter, Recycle, ArrowRight } from "lucide-react";
+import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { createWasteReport, getWasteReportsByCitizen } from "../../api/waste";
+import { createWasteReport, getWasteReportsByCitizen, deleteWasteReport } from "../../api/waste";
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
 
 const RANKS = [
@@ -19,21 +19,27 @@ const WASTE_TYPES = [
 ];
 
 const STATUS_MAP = {
-  pending: "Đang chờ",
-  assigned: "Đã phân công",
-  collected: "Đã thu gom",
-  completed: "Hoàn thành",
-  "Đang chờ": "Đang chờ",
-  "Đã thu gom": "Đã thu gom",
-  "Đang xử lý": "Đang xử lý",
+  // Mapping for integer enum values from Backend
+  0: "Đang chờ",
+  1: "Đã phân công",
+  2: "Đang xử lý",
+  3: "Hoàn thành",
+  4: "Đã hủy",
+  
+  // Mapping for string enum names (PascalCase)
+  "Pending": "Đang chờ",
+  "Assigned": "Đã phân công",
+  "Processing": "Đang xử lý",
+  "Completed": "Hoàn thành",
+  "Cancelled": "Đã hủy",
 };
 
 const STATUS_COLORS = {
-  "Đang chờ": "bg-blue-100 text-blue-800",
-  "Đã phân công": "bg-indigo-100 text-indigo-800",
-  "Đã thu gom": "bg-emerald-100 text-emerald-800",
-  "Hoàn thành": "bg-emerald-100 text-emerald-800",
-  "Đang xử lý": "bg-orange-100 text-orange-800",
+  "Đang chờ": "bg-yellow-100 text-yellow-800",
+  "Đã phân công": "bg-blue-100 text-blue-800",
+  "Đang xử lý": "bg-purple-100 text-purple-800",
+  "Hoàn thành": "bg-green-100 text-green-800",
+  "Đã hủy": "bg-red-100 text-red-800",
 };
 
 function getRankFromPoints(points) {
@@ -138,6 +144,9 @@ function ReportWaste() {
         const res = await getAllDistricts();
         if (res.success) {
           setDistricts(res.data);
+          if (res.data.length === 0) console.warn("API returned empty districts list");
+        } else {
+          console.error("API error fetching districts:", res.message);
         }
       } catch (err) {
         console.error("Failed to fetch districts", err);
@@ -173,12 +182,36 @@ function ReportWaste() {
   }, [selectedDistrictId]);
 
   const handleSubmit = async () => {
-    if (!user?.id || !selectedAreaId) return;
+    // Ưu tiên dùng citizenId nếu có (từ BE), rồi mới đến id/userId
+    const rawId = user?.citizenId || user?.id || user?.userId || user?.UserId;
+    const finalId = rawId ? Number(rawId) : undefined;
+    
+    // Debug log
+    console.log("Submitting report with ID:", finalId, "from user object:", user);
+
+    if (!finalId || isNaN(finalId)) {
+      console.error("DEBUG: Không tìm thấy ID hợp lệ trong đối tượng user:", user);
+      alert("Lỗi: Không tìm thấy ID người dùng hợp lệ. Vui lòng đăng xuất và đăng nhập lại.");
+      return;
+    }
+    if (!selectedDistrictId) {
+      alert("Vui lòng chọn Quận/Huyện.");
+      return;
+    }
+    if (!selectedAreaId) {
+      alert("Vui lòng chọn Khu vực để tiếp tục.");
+      return;
+    }
+    if (selectedWasteTypes.length === 0) {
+      alert("Vui lòng chọn ít nhất một loại rác.");
+      return;
+    }
     
     setSubmitting(true);
     try {
       const formData = new FormData();
-      formData.append("CitizenId", user.id);
+      // Đảm bảo gửi ID đúng (ưu tiên CitizenId thực sự từ BE)
+      formData.append("CitizenId", finalId);
       formData.append("AreaId", selectedAreaId);
       formData.append("WasteType", selectedWasteTypes.join(", "));
       formData.append("Description", description.trim());
@@ -189,7 +222,10 @@ function ReportWaste() {
         formData.append("ImageFile", imageFile);
       }
 
-      await createWasteReport(formData);
+      const result = await createWasteReport(formData);
+      console.log("Submit success:", result);
+      
+      alert("Báo cáo của bạn đã được gửi thành công!");
 
       // Reset form
       setDescription("");
@@ -198,13 +234,35 @@ function ReportWaste() {
       setCoords(null);
       
       // Refresh list
-      const data = await getWasteReportsByCitizen(user.id);
+      const data = await getWasteReportsByCitizen(finalId);
       setReports(data);
     } catch (err) {
-      console.error(err);
-      alert("Gửi báo cáo thất bại. Vui lòng thử lại.");
+      console.error("Submit error:", err);
+      // Hiển thị chi tiết lỗi nếu có
+      const errorMsg = err.response?.data?.message || err.response?.data || err.message || "Lỗi không xác định";
+      alert("Gửi báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng kiểm tra lại thông tin."));
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (reportId) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa báo cáo này? Thao tác này không thể hoàn tác.")) {
+      return;
+    }
+    try {
+      await deleteWasteReport(reportId);
+      // Refresh list dùng ID Citizen
+      const rawId = user?.citizenId || user?.id || user?.userId || user?.UserId;
+      if (rawId) {
+        const data = await getWasteReportsByCitizen(Number(rawId));
+        setReports(data);
+      }
+      alert("Đã xóa báo cáo thành công.");
+    } catch (err) {
+      console.error("Delete error:", err);
+      const errorMsg = err.response?.data?.message || err.response?.data || err.message || "Lỗi không xác định";
+      alert("Xóa báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng thử lại sau."));
     }
   };
 
@@ -213,8 +271,8 @@ function ReportWaste() {
   const statusColor = (status) =>
     STATUS_COLORS[displayStatus(status)] || "bg-gray-100 text-gray-800";
   const pointsDisplay = (report) => {
-    const s = (report.status || "").toLowerCase();
-    if (s === "completed" || s === "collected") return "+10";
+    const s = displayStatus(report.status);
+    if (s === "Hoàn thành") return "+10";
     return "—";
   };
 
@@ -378,8 +436,12 @@ function ReportWaste() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting || !selectedAreaId || !selectedDistrictId || selectedWasteTypes.length === 0}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                disabled={submitting}
+                className={`w-full text-white font-medium py-3 rounded-lg transition-colors flex items-center justify-center space-x-2 ${
+                  submitting || !selectedAreaId || !selectedDistrictId || selectedWasteTypes.length === 0
+                    ? "bg-gray-400"
+                    : "bg-emerald-500 hover:bg-emerald-600 shadow-lg shadow-emerald-200"
+                }`}
               >
                 <Send size={18} />
                 <span>{submitting ? "Đang gửi..." : "Gửi báo cáo"}</span>
@@ -478,10 +540,19 @@ function ReportWaste() {
                         {displayStatus(report.status)}
                       </span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right flex items-center justify-end space-x-2">
                       <span className="text-emerald-600 font-semibold">
                         {pointsDisplay(report)}
                       </span>
+                      {(report.status === 0 || report.status === "Pending" || report.status === "pending") && (
+                        <button
+                          onClick={() => handleDelete(report.reportId)}
+                          className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors ml-2"
+                          title="Xóa báo cáo"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))

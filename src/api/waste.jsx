@@ -18,3 +18,9 @@ export const getWasteReportsByCitizen = async (citizenId) => {
   const response = await axiosClient.get(`/WasteReport/citizen/${citizenId}`);
   return response.data;
 };
+
+// Hàm xóa báo cáo rác (chỉ dành cho báo cáo đang chờ)
+export const deleteWasteReport = async (reportId) => {
+  const response = await axiosClient.delete(`/WasteReport/${reportId}`);
+  return response.data;
+};
