@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Camera, MapPin, Send, Filter, Recycle, ArrowRight } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { createWasteReport, getWasteReports } from "../../api/waste";
+import { createWasteReport, getWasteReportsByCitizen } from "../../api/waste";
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
 
 const RANKS = [
@@ -117,10 +117,9 @@ function ReportWaste() {
     let cancelled = false;
     async function fetchReports() {
       try {
-        const data = await getWasteReports();
+        const data = await getWasteReportsByCitizen(user?.id);
         if (!cancelled && Array.isArray(data)) {
-          const mine = data.filter((r) => String(r.citizenId) === String(user?.id));
-          setReports(mine);
+          setReports(data);
         }
       } catch {
         if (!cancelled) setReports([]);
@@ -199,9 +198,8 @@ function ReportWaste() {
       setCoords(null);
       
       // Refresh list
-      const data = await getWasteReports();
-      const mine = data.filter((r) => String(r.citizenId) === String(user.id));
-      setReports(mine);
+      const data = await getWasteReportsByCitizen(user.id);
+      setReports(data);
     } catch (err) {
       console.error(err);
       alert("Gửi báo cáo thất bại. Vui lòng thử lại.");
@@ -455,20 +453,20 @@ function ReportWaste() {
               ) : (
                 reports.map((report) => (
                   <div
-                    key={report.id}
+                    key={report.reportId}
                     className="grid grid-cols-4 gap-4 py-4 border-b last:border-0 hover:bg-gray-50 transition-colors"
                   >
                     <div>
                       <div className="text-sm font-medium text-gray-900">
-                        {formatDate(report.created_at)}
+                        {formatDate(report.createdAt)}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {formatTime(report.created_at)}
+                        {formatTime(report.createdAt)}
                       </div>
                     </div>
                     <div className="flex items-center">
                       <span className="text-sm text-gray-700">
-                        {report.waste_type || "—"}
+                        {report.wasteType || "—"}
                       </span>
                     </div>
                     <div className="flex items-center">

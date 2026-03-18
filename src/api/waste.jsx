@@ -13,3 +13,8 @@ export const getWasteReports = async () => {
   const response = await axiosClient.get("/WasteReport");
   return response.data;
 };
+// Hàm lấy danh sách báo cáo rác của một citizen cụ thể
+export const getWasteReportsByCitizen = async (citizenId) => {
+  const response = await axiosClient.get(`/WasteReport/citizen/${citizenId}`);
+  return response.data;
+};
