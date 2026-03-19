@@ -1,9 +1,11 @@
-import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { createWasteReport, getWasteReportsByCitizen, deleteWasteReport } from "../../api/waste";
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
+import Toast from "../common/Toast";
+import ConfirmModal from "../common/ConfirmModal";
 
 const RANKS = [
   { name: "Đồng", min: 0 },
@@ -85,6 +87,24 @@ function ReportWaste() {
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
+  const routerLocation = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(routerLocation.search);
+    const reportId = params.get("reportId");
+    if (reportId && reports.length > 0) {
+      setTimeout(() => {
+        const element = document.getElementById(`report-${reportId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "center" });
+          element.classList.add("ring-2", "ring-emerald-500", "bg-emerald-50");
+          setTimeout(() => {
+            element.classList.remove("ring-2", "ring-emerald-500", "bg-emerald-50");
+          }, 5000);
+        }
+      }, 500);
+    }
+  }, [routerLocation.search, reports]);
   const [submitting, setSubmitting] = useState(false);
   const [selectedWasteTypes, setSelectedWasteTypes] = useState(["Nhựa"]);
   
@@ -98,6 +118,12 @@ function ReportWaste() {
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [toast, setToast] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, reportId: null });
+
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
 
   const userPoints = user?.total_points ?? 0;
   const userRank = getRankFromPoints(userPoints).name;
@@ -191,19 +217,19 @@ function ReportWaste() {
 
     if (!finalId || isNaN(finalId)) {
       console.error("DEBUG: Không tìm thấy ID hợp lệ trong đối tượng user:", user);
-      alert("Lỗi: Không tìm thấy ID người dùng hợp lệ. Vui lòng đăng xuất và đăng nhập lại.");
+      showToast("Lỗi: Không tìm thấy ID người dùng hợp lệ. Vui lòng đăng xuất và đăng nhập lại.", "error");
       return;
     }
     if (!selectedDistrictId) {
-      alert("Vui lòng chọn Quận/Huyện.");
+      showToast("Vui lòng chọn Quận/Huyện.", "error");
       return;
     }
     if (!selectedAreaId) {
-      alert("Vui lòng chọn Khu vực để tiếp tục.");
+      showToast("Vui lòng chọn Khu vực để tiếp tục.", "error");
       return;
     }
     if (selectedWasteTypes.length === 0) {
-      alert("Vui lòng chọn ít nhất một loại rác.");
+      showToast("Vui lòng chọn ít nhất một loại rác.", "error");
       return;
     }
     
@@ -225,7 +251,7 @@ function ReportWaste() {
       const result = await createWasteReport(formData);
       console.log("Submit success:", result);
       
-      alert("Báo cáo của bạn đã được gửi thành công!");
+      showToast("Báo cáo của bạn đã được gửi thành công!", "success");
 
       // Reset form
       setDescription("");
@@ -240,16 +266,20 @@ function ReportWaste() {
       console.error("Submit error:", err);
       // Hiển thị chi tiết lỗi nếu có
       const errorMsg = err.response?.data?.message || err.response?.data || err.message || "Lỗi không xác định";
-      alert("Gửi báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng kiểm tra lại thông tin."));
+      showToast("Gửi báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng kiểm tra lại thông tin."), "error");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDelete = async (reportId) => {
-    if (!window.confirm("Bạn có chắc chắn muốn xóa báo cáo này? Thao tác này không thể hoàn tác.")) {
-      return;
-    }
+  const handleDelete = (reportId) => {
+    setDeleteConfirm({ isOpen: true, reportId });
+  };
+
+  const executeDelete = async () => {
+    const { reportId } = deleteConfirm;
+    if (!reportId) return;
+
     try {
       await deleteWasteReport(reportId);
       // Refresh list dùng ID Citizen
@@ -258,11 +288,13 @@ function ReportWaste() {
         const data = await getWasteReportsByCitizen(Number(rawId));
         setReports(data);
       }
-      alert("Đã xóa báo cáo thành công.");
+      showToast("Đã xóa báo cáo thành công.", "success");
     } catch (err) {
       console.error("Delete error:", err);
       const errorMsg = err.response?.data?.message || err.response?.data || err.message || "Lỗi không xác định";
-      alert("Xóa báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng thử lại sau."));
+      showToast("Xóa báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng thử lại sau."), "error");
+    } finally {
+      setDeleteConfirm({ isOpen: false, reportId: null }); // Close modal after attempt
     }
   };
 
@@ -286,6 +318,15 @@ function ReportWaste() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <ConfirmModal 
+        isOpen={deleteConfirm.isOpen}
+        onClose={() => setDeleteConfirm({ isOpen: false, reportId: null })}
+        onConfirm={executeDelete}
+        title="Xác nhận xóa báo cáo"
+        message="Bạn có chắc chắn muốn xóa báo cáo này? Thao tác này không thể hoàn tác."
+        confirmText="Xác nhận xóa"
+      />
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
@@ -516,7 +557,8 @@ function ReportWaste() {
                 reports.map((report) => (
                   <div
                     key={report.reportId}
-                    className="grid grid-cols-4 gap-4 py-4 border-b last:border-0 hover:bg-gray-50 transition-colors"
+                    id={`report-${report.reportId}`}
+                    className="grid grid-cols-4 gap-4 py-4 border-b last:border-0 hover:bg-gray-50 transition-all rounded-lg px-2"
                   >
                     <div>
                       <div className="text-sm font-medium text-gray-900">

@@ -2,6 +2,7 @@ import { CheckCircle2, Clock, AlertCircle, TrendingUp, MapPin, Star, LogOut } fr
 import CollectorSidebar from "./CollectorSidebar";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import NotificationDropdown from "../common/NotificationDropdown";
 
 const stats = [
   { label: "Hoàn thành hôm nay", value: 4,  total: 6,  color: "bg-green-500", light: "bg-green-50 text-green-700", icon: CheckCircle2 },
@@ -49,9 +50,12 @@ export default function CollectorDashboard() {
             <h1 className="text-xl font-bold text-gray-800">Xin chào, {user?.full_name || "Người thu gom"} 👋</h1>
             <p className="text-sm text-gray-500">Thứ Sáu, 06/03/2026 — Khu vực: 1A, 1B</p>
           </div>
-          <div className="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-xl">
-            <MapPin className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-medium text-green-700">Khu vực 1A • 1B</span>
+          <div className="flex items-center gap-4">
+            <NotificationDropdown />
+            <div className="flex items-center gap-2 bg-green-50 px-4 py-2 rounded-xl">
+              <MapPin className="w-4 h-4 text-green-600" />
+              <span className="text-sm font-medium text-green-700">Khu vực 1A • 1B</span>
+            </div>
           </div>
         </header>
 

@@ -87,6 +87,7 @@ export function AuthProvider({ children }) {
       role: roleName,
       roleName: roleName,
       token: authData.token || userFromApi.token,
+      total_points: userFromApi.totalPoints || userFromApi.TotalPoints || 0,
     };
     
     console.log("Saving user to store (detailed):", userToStore);

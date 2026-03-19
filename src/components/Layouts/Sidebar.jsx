@@ -19,6 +19,7 @@ const mainMenuItems = [
 ];
 
 const activityMenuItems = [
+  { id: "vouchers",  label: "Quản lý Voucher", icon: Recycle,      path: "/voucherManagement" },
   { id: "settings",  label: "Cấu hình điểm thưởng", icon: Settings, path: "/settings" },
 ];
 

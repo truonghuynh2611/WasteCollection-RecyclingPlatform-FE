@@ -1,5 +1,6 @@
-import { Users, CalendarDays, TrendingUp, AlertCircle, Bell } from "lucide-react";
+import { Users, CalendarDays, TrendingUp, AlertCircle } from "lucide-react";
 import ManagerSidebar from "./ManagerSidebar";
+import NotificationDropdown from "../common/NotificationDropdown";
 
 const stats = [
   { label: "Người thu gom khu vực", value: 12, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
@@ -20,10 +21,7 @@ export default function ManagerDashboard() {
             <p className="text-sm text-gray-500 mt-1">Tổng quan hiệu suất khu vực của bạn</p>
           </div>
           <div className="flex items-center gap-4">
-            <button className="relative p-2 hover:bg-gray-50 rounded-full transition-colors">
-              <Bell className="w-5 h-5 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full ring-2 ring-white" />
-            </button>
+            <NotificationDropdown />
           </div>
         </header>
 

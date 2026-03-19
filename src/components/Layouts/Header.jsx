@@ -1,7 +1,8 @@
-import { LogOut, User } from "lucide-react";
+import { LogOut, User, Bell } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth, ROLES } from "../../contexts/AuthContext";
 import logo from "../../assets/images/logo.png";
+import NotificationDropdown from "../common/NotificationDropdown";
 
 function Header() {
   const { user, logout, isAuthenticated } = useAuth();
@@ -63,7 +64,9 @@ function Header() {
               </>
             )}
             {isAuthenticated ? (
-              <>
+              <div className="flex items-center space-x-4">
+                <NotificationDropdown />
+                <div className="h-5 w-px bg-gray-300"></div>
                 <Link 
                   to="/profile"
                   className="flex items-center gap-2 text-gray-600 text-sm hover:opacity-80 transition"
@@ -84,7 +87,7 @@ function Header() {
                   <LogOut className="h-4 w-4" />
                   Đăng xuất
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <Link

@@ -15,13 +15,6 @@ function Login() {
   const navigate = useNavigate();
   const { login: setAuthUser, isAuthenticated, user } = useAuth();
 
-  if (isAuthenticated && user) {
-    if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
-    if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
-    if (user.role === ROLES.AREA_MANAGER || user.role === "r5") return <Navigate to="/manager" replace />;
-    return <Navigate to="/" replace />;
-  }
-
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -30,6 +23,13 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  if (isAuthenticated && user) {
+    if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
+    if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
+    if (user.role === ROLES.AREA_MANAGER || user.role === "r5") return <Navigate to="/manager" replace />;
+    return <Navigate to="/" replace />;
+  }
 
   const handleChange = (e) => {
     const { name, value } = e.target;
