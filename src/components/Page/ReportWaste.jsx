@@ -21,25 +21,28 @@ const WASTE_TYPES = [
 ];
 
 const STATUS_MAP = {
-  // Mapping for integer enum values from Backend
+  // Mapping for integer enum values from Backend (ReportStatus.cs)
   0: "Đang chờ",
-  1: "Đã phân công",
-  2: "Đang xử lý",
-  3: "Hoàn thành",
-  4: "Đã hủy",
+  1: "Chấp nhận",
+  2: "Đã phân công",
+  3: "Đang đến",
+  4: "Hoàn thành",
+  5: "Đã hủy",
   
-  // Mapping for string enum names (PascalCase)
+  // Mapping for string enum names (PascalCase from Backend)
   "Pending": "Đang chờ",
+  "Accepted": "Chấp nhận",
   "Assigned": "Đã phân công",
-  "Processing": "Đang xử lý",
-  "Completed": "Hoàn thành",
-  "Cancelled": "Đã hủy",
+  "OnTheWay": "Đang đến",
+  "Collected": "Hoàn thành",
+  "Failed": "Đã hủy",
 };
 
 const STATUS_COLORS = {
   "Đang chờ": "bg-yellow-100 text-yellow-800",
-  "Đã phân công": "bg-blue-100 text-blue-800",
-  "Đang xử lý": "bg-purple-100 text-purple-800",
+  "Chấp nhận": "bg-blue-100 text-blue-800",
+  "Đã phân công": "bg-indigo-100 text-indigo-800",
+  "Đang đến": "bg-purple-100 text-purple-800",
   "Hoàn thành": "bg-green-100 text-green-800",
   "Đã hủy": "bg-red-100 text-red-800",
 };
@@ -304,7 +307,21 @@ function ReportWaste() {
     STATUS_COLORS[displayStatus(status)] || "bg-gray-100 text-gray-800";
   const pointsDisplay = (report) => {
     const s = displayStatus(report.status);
-    if (s === "Hoàn thành") return "+10";
+    if (s === "Hoàn thành") {
+      // Sum points from pointHistories if available (linked since the recent fix)
+      if (report.pointHistories && report.pointHistories.length > 0) {
+        const total = report.pointHistories.reduce((sum, ph) => sum + (ph.pointAmount || 0), 0);
+        return total > 0 ? `+${total}` : total;
+      }
+      return "+10"; // Fallback for old records or if history is not yet linked
+    }
+    if (s === "Đã hủy") {
+      if (report.pointHistories && report.pointHistories.length > 0) {
+        const total = report.pointHistories.reduce((sum, ph) => sum + (ph.pointAmount || 0), 0);
+        return total;
+      }
+      return "0";
+    }
     return "—";
   };
 

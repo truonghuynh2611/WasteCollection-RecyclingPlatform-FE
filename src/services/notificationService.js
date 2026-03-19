@@ -1,11 +1,11 @@
-import axios from 'axios';
+import axiosClient from '../api/axiosClient';
 
-const API_URL = 'http://localhost:5000/api/Notification';
+const API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/Notification`;
 
 export const notificationService = {
   getUserNotifications: async (userId) => {
     try {
-      const response = await axios.get(`${API_URL}/user/${userId}`);
+      const response = await axiosClient.get(`${API_URL}/user/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error fetching notifications:', error);
@@ -15,7 +15,7 @@ export const notificationService = {
 
   getUnreadCount: async (userId) => {
     try {
-      const response = await axios.get(`${API_URL}/user/${userId}/unread-count`);
+      const response = await axiosClient.get(`${API_URL}/user/${userId}/unread-count`);
       return response.data;
     } catch (error) {
       console.error('Error fetching unread count:', error);
@@ -25,7 +25,7 @@ export const notificationService = {
 
   markAsRead: async (notificationId) => {
     try {
-      const response = await axios.put(`${API_URL}/${notificationId}/read`);
+      const response = await axiosClient.put(`${API_URL}/${notificationId}/read`);
       return response.data;
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -35,7 +35,7 @@ export const notificationService = {
 
   markAllAsRead: async (userId) => {
     try {
-      const response = await axios.put(`${API_URL}/user/${userId}/read-all`);
+      const response = await axiosClient.put(`${API_URL}/user/${userId}/read-all`);
       return response.data;
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
@@ -45,7 +45,7 @@ export const notificationService = {
 
   deleteNotification: async (notificationId) => {
     try {
-      const response = await axios.delete(`${API_URL}/${notificationId}`);
+      const response = await axiosClient.delete(`${API_URL}/${notificationId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting notification:', error);
@@ -55,7 +55,7 @@ export const notificationService = {
 
   deleteAllNotifications: async (userId) => {
     try {
-      const response = await axios.delete(`${API_URL}/user/${userId}`);
+      const response = await axiosClient.delete(`${API_URL}/user/${userId}`);
       return response.data;
     } catch (error) {
       console.error('Error deleting all notifications:', error);

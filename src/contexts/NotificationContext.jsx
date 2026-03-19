@@ -52,11 +52,15 @@ export const NotificationProvider = ({ children }) => {
   // Set up SignalR connection
   useEffect(() => {
     if (user?.id) {
+      // Deriving SignalR hub URL from the base API URL (removing /api if present)
+      const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+      const hubUrl = baseUrl.replace(/\/api$/, "") + "/notificationHub";
+      
       const newConnection = new signalR.HubConnectionBuilder()
-        .withUrl(`http://localhost:5000/notificationHub?userId=${user.id}`)
+        .withUrl(`${hubUrl}?userId=${user.id}`)
         .withAutomaticReconnect()
         .build();
-
+ 
       setHubConnection(newConnection);
     } else if (hubConnection) {
       hubConnection.stop().then(() => setHubConnection(null));

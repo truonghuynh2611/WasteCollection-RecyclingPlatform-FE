@@ -25,12 +25,15 @@ import Rewards from "./components/Page/Rewards.jsx";
 import Rankings from "./components/Page/Rankings.jsx";
 import Profile from "./components/Page/Profile.jsx";
 import VerifyEmail from "./components/Auth/VerifyEmail.jsx";
+import PointConfiguration from "./components/Page/PointConfiguration.jsx";
+import { Toaster } from 'react-hot-toast';
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <NotificationProvider>
+          <Toaster position="top-right" toastOptions={{ duration: 3000 }} />
           <Routes>
             {/* ── Collector portal (no Header/Footer, own sidebar) ── */}
           <Route
@@ -173,6 +176,14 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <VoucherManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/settings"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                        <PointConfiguration />
                       </ProtectedRoute>
                     }
                   />

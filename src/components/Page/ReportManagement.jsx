@@ -20,18 +20,20 @@ const tabs = [
 
 const statusColors = {
   "Pending": "bg-yellow-100 text-yellow-700",
-  "Assigned": "bg-blue-100 text-blue-700",
-  "Collected": "bg-purple-100 text-purple-700",
-  "Completed": "bg-green-100 text-green-700",
-  "Cancelled": "bg-red-100 text-red-700",
+  "Accepted": "bg-blue-100 text-blue-700",
+  "Assigned": "bg-indigo-100 text-indigo-700",
+  "OnTheWay": "bg-purple-100 text-purple-700",
+  "Collected": "bg-green-100 text-green-700",
+  "Failed": "bg-red-100 text-red-700",
 };
 
 const statusLabels = {
   "Pending": "Đang chờ",
+  "Accepted": "Chấp nhận",
   "Assigned": "Đã phân công",
-  "Collected": "Đang thu gom",
-  "Completed": "Đã hoàn thành",
-  "Cancelled": "Đã hủy",
+  "OnTheWay": "Đang đến",
+  "Collected": "Hoàn thành",
+  "Failed": "Đã hủy",
 };
 
 /* ─── Modal: Xem chi tiết ─── */
@@ -139,10 +141,11 @@ export default function ReportManagement() {
         const normalizedData = (Array.isArray(response) ? response : []).map(r => {
           let strStatus = String(r.status || r.Status);
           if (strStatus === "0") strStatus = "Pending";
-          else if (strStatus === "1") strStatus = "Assigned";
-          else if (strStatus === "2") strStatus = "Collected";
-          else if (strStatus === "3") strStatus = "Completed";
-          else if (strStatus === "4") strStatus = "Cancelled";
+          else if (strStatus === "1") strStatus = "Accepted";
+          else if (strStatus === "2") strStatus = "Assigned";
+          else if (strStatus === "3") strStatus = "OnTheWay";
+          else if (strStatus === "4") strStatus = "Collected";
+          else if (strStatus === "5") strStatus = "Failed";
           
           return { 
             ...r, 
@@ -178,9 +181,9 @@ export default function ReportManagement() {
   const filteredData = data.filter(item => {
     if (activeTab === "all") return true;
     if (activeTab === "pending") return item.status === "Pending";
-    if (activeTab === "assigned") return item.status === "Assigned";
-    if (activeTab === "collecting") return item.status === "Collected";
-    if (activeTab === "completed") return item.status === "Completed";
+    if (activeTab === "assigned") return item.status === "Assigned" || item.status === "Accepted";
+    if (activeTab === "collecting") return item.status === "OnTheWay";
+    if (activeTab === "completed") return item.status === "Collected";
     return true;
   });
 

@@ -4,18 +4,21 @@ import CollectorSidebar from "./CollectorSidebar";
 import { getMyTasks, updateTaskStatus as apiUpdateTaskStatus } from "../../api/task";
 
 const statusStyle = {
-  "Completed": "bg-green-100 text-green-700",
-  "Processing": "bg-blue-100  text-blue-700",
   "Pending": "bg-yellow-100 text-yellow-700",
+  "Accepted": "bg-blue-100 text-blue-700",
   "Assigned": "bg-indigo-100 text-indigo-700",
+  "OnTheWay": "bg-purple-100 text-purple-700",
+  "Collected": "bg-green-100 text-green-700",
+  "Failed": "bg-red-100 text-red-700",
 };
 
 const statusMapVn = {
-  "Pending": "Chờ xử lý",
+  "Pending": "Đang chờ",
+  "Accepted": "Chấp nhận",
   "Assigned": "Đã phân công",
-  "Processing": "Đang làm",
-  "Completed": "Hoàn thành",
-  "Cancelled": "Đã hủy"
+  "OnTheWay": "Đang đến",
+  "Collected": "Hoàn thành",
+  "Failed": "Đã hủy"
 };
 
 const priorityStyle = {
@@ -30,7 +33,7 @@ const typeColor = {
   "Kim loại": "text-gray-600 bg-gray-100",
   "Nguy hại": "text-red-600 bg-red-50",
 };
-const STATUS_OPTIONS = ["Pending", "Processing", "Completed"];
+const STATUS_OPTIONS = ["Assigned", "OnTheWay", "Collected", "Failed"];
 
 export default function CollectorTasks() {
   const [tasks, setTasks]     = useState([]);
@@ -79,8 +82,8 @@ export default function CollectorTasks() {
   const counts = {
     all: tasks.length,
     "Pending": tasks.filter(t => t.status === "Pending").length,
-    "Processing":  tasks.filter(t => t.status === "Processing").length,
-    "Completed":tasks.filter(t => t.status === "Completed").length,
+    "OnTheWay":  tasks.filter(t => t.status === "OnTheWay").length,
+    "Collected": tasks.filter(t => t.status === "Collected").length,
   };
 
   return (
@@ -99,9 +102,9 @@ export default function CollectorTasks() {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
               {[
                 { label: "Tất cả",      key: "all",         icon: AlertCircle,  color: "text-gray-600 bg-gray-50" },
-                { label: "Chờ xử lý",  key: "Pending",     icon: AlertCircle,  color: "text-yellow-600 bg-yellow-50" },
-                { label: "Đang làm",   key: "Processing",  icon: Clock,        color: "text-blue-600 bg-blue-50" },
-                { label: "Hoàn thành", key: "Completed",   icon: CheckCircle2, color: "text-green-600 bg-green-50" },
+                { label: "Đang chờ",   key: "Pending",     icon: AlertCircle,  color: "text-yellow-600 bg-yellow-50" },
+                { label: "Đang đến",   key: "OnTheWay",    icon: Clock,        color: "text-blue-600 bg-blue-50" },
+                { label: "Hoàn thành", key: "Collected",   icon: CheckCircle2, color: "text-green-600 bg-green-50" },
               ].map(c => {
                 const Icon = c.icon;
                 return (
