@@ -1,6 +1,7 @@
 import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider, ROLES } from "./contexts/AuthContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import Header from "./components/Layouts/Header.jsx";
 import Homepage from "./components/Page/Homepage.jsx";
 import Footer from "./components/Layouts/Footer.jsx";
@@ -13,6 +14,7 @@ import ReportManagement from "./components/Page/ReportManagement.jsx";
 import UserManagement from "./components/Page/UserManagement.jsx";
 import CollectorManagement from "./components/Page/CollectorManagement.jsx";
 import AreaManagement from "./components/Page/AreaManagement.jsx";
+import VoucherManagement from "./components/Page/VoucherManagement.jsx";
 import CollectorDashboard from "./components/Collector/CollectorDashboard.jsx";
 import CollectorTasks from "./components/Collector/CollectorTasks.jsx";
 import CollectorSchedule from "./components/Collector/CollectorSchedule.jsx";
@@ -28,8 +30,9 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
-          {/* ── Collector portal (no Header/Footer, own sidebar) ── */}
+        <NotificationProvider>
+          <Routes>
+            {/* ── Collector portal (no Header/Footer, own sidebar) ── */}
           <Route
             path="/collector"
             element={
@@ -165,12 +168,21 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/voucherManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                        <VoucherManagement />
+                      </ProtectedRoute>
+                    }
+                  />
                 </Routes>
                 <Footer />
               </div>
             }
           />
         </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

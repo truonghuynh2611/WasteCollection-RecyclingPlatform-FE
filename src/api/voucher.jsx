@@ -1,68 +1,87 @@
 import axiosClient from "./axiosClient";
 
-// Mock data for vouchers until backend is ready
-const MOCK_VOUCHERS = [
-  {
-    id: 1,
-    name: "Phiếu giảm giá Highlands Coffee 50k",
-    description: "Áp dụng cho hóa đơn từ 100k",
-    pointsRequired: 500,
-    image: "https://images.unsplash.com/photo-1541167760496-1628856ab772?q=80&w=500&auto=format&fit=crop",
-    category: "Ẩm thực",
-    expiryDays: 30
-  },
-  {
-    id: 2,
-    name: "Voucher GrabCar 30k",
-    description: "Giảm 30k cho chuyến đi từ 60k",
-    pointsRequired: 300,
-    image: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?q=80&w=500&auto=format&fit=crop",
-    category: "Di chuyển",
-    expiryDays: 15
-  },
-  {
-    id: 3,
-    name: "Thẻ cào điện thoại 20k",
-    description: "Áp dụng cho tất cả nhà mạng",
-    pointsRequired: 200,
-    image: "https://images.unsplash.com/photo-1512428559087-560fa5ceab42?q=80&w=500&auto=format&fit=crop",
-    category: "Tiện ích",
-    expiryDays: 365
-  },
-  {
-    id: 4,
-    name: "Túi vải Canvas bảo vệ môi trường",
-    description: "Túi vải cao cấp thiết kế riêng",
-    pointsRequired: 1000,
-    image: "https://images.unsplash.com/photo-1544816153-12158008e7af?q=80&w=500&auto=format&fit=crop",
-    category: "Quà tặng",
-    expiryDays: 0
-  }
-];
-
 export const getVouchers = async () => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, data: MOCK_VOUCHERS });
-    }, 500);
-  });
+  try {
+    const response = await axiosClient.get("/Voucher");
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error fetching vouchers:", error);
+    return { success: false, error };
+  }
 };
 
-export const redeemVoucher = async (voucherId) => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, message: "Đổi quà thành công! Mã voucher đã được gửi vào hòm thư của bạn." });
-    }, 1000);
-  });
+export const getVoucherById = async (id) => {
+  try {
+    const response = await axiosClient.get(`/Voucher/${id}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error(`Error fetching voucher ${id}:`, error);
+    return { success: false, error };
+  }
 };
 
-export const getMyVouchers = async () => {
-  // Simulate API call
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, data: [] });
-    }, 500);
-  });
+export const createVoucher = async (voucherData) => {
+  try {
+    const response = await axiosClient.post("/Voucher", voucherData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error("Error creating voucher:", error);
+    return { success: false, error };
+  }
+};
+
+export const updateVoucher = async (id, voucherData) => {
+  try {
+    await axiosClient.put(`/Voucher/${id}`, voucherData);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error updating voucher ${id}:`, error);
+    return { success: false, error };
+  }
+};
+
+export const deleteVoucher = async (id) => {
+  try {
+    await axiosClient.delete(`/Voucher/${id}`);
+    return { success: true };
+  } catch (error) {
+    console.error(`Error deleting voucher ${id}:`, error);
+    return { success: false, error };
+  }
+};
+
+export const getCitizenVouchers = async (citizenId) => {
+  try {
+    const response = await axiosClient.get(`/Voucher/citizen/${citizenId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error(`Error fetching vouchers for citizen ${citizenId}:`, error);
+    return { success: false, error };
+  }
+};
+
+export const redeemVoucher = async (citizenId, voucherId) => {
+  try {
+    const response = await axiosClient.post("/Voucher/redeem", { citizenId, voucherId });
+    return { success: true, ...response.data };
+  } catch (error) {
+    console.error("Error redeeming voucher:", error);
+    return { success: false, message: error.response?.data?.message || "Đã có lỗi xảy ra" };
+  }
+};
+
+export const uploadVoucherImage = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axiosClient.post("/Voucher/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return { success: true, imageUrl: response.data.imageUrl };
+  } catch (error) {
+    console.error("Error uploading voucher image:", error);
+    return { success: false, error };
+  }
 };
