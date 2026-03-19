@@ -45,10 +45,10 @@ function Register() {
       return;
     }
 
-    // 2. Validate số điện thoại (đúng 10 số)
-    const phoneRegex = /^[0-9]{10}$/;
+    // 2. Validate số điện thoại (bắt đầu bằng 0, đúng 10 số)
+    const phoneRegex = /^0[0-9]{9}$/;
     if (!phoneRegex.test(formData.phone)) {
-      setError("Số điện thoại phải bao gồm đúng 10 chữ số");
+      setError("Số điện thoại phải bắt đầu bằng số 0 và bao gồm đúng 10 chữ số");
       return;
     }
 
