@@ -7,9 +7,18 @@ import {
   Truck,
   Gift,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth, ROLES } from "../../contexts/AuthContext";
 
 function Homepage() {
+  const { isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated && user) {
+    if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
+    if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
+    if (user.role === ROLES.AREA_MANAGER || user.role === "r5") return <Navigate to="/manager" replace />;
+  }
+
   const stats = [
     {
       icon: FileText,

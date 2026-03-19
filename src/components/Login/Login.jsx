@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import {
   Lock,
   Eye,
@@ -8,12 +8,20 @@ import {
   AlertCircle,
   Mail,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth, ROLES } from "../../contexts/AuthContext";
 import { loginUser } from "../../api/auth";
 
 function Login() {
   const navigate = useNavigate();
-  const { login: setAuthUser } = useAuth();
+  const { login: setAuthUser, isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated && user) {
+    if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
+    if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
+    if (user.role === ROLES.AREA_MANAGER || user.role === "r5") return <Navigate to="/manager" replace />;
+    return <Navigate to="/" replace />;
+  }
+
   const [formData, setFormData] = useState({
     email: "",
     password: "",

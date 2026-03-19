@@ -1,10 +1,20 @@
 import { useState } from "react";
 import { Lock, Phone, User, Eye, EyeOff, Check, Mail } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { registerUser } from "../../api/auth";
+import { useAuth, ROLES } from "../../contexts/AuthContext";
 
 function Register() {
   const navigate = useNavigate();
+  const { login: setAuthUser, isAuthenticated, user } = useAuth();
+
+  if (isAuthenticated && user) {
+    if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
+    if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
+    if (user.role === ROLES.AREA_MANAGER || user.role === "r5") return <Navigate to="/manager" replace />;
+    return <Navigate to="/" replace />;
+  }
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -29,8 +39,32 @@ function Register() {
     e.preventDefault();
     setError("");
 
+    // 1. Kiểm tra điền đầy đủ
     if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
       setError("Vui lòng điền đầy đủ tất cả các trường");
+      return;
+    }
+
+    // 2. Validate số điện thoại (đúng 10 số)
+    const phoneRegex = /^[0-9]{10}$/;
+    if (!phoneRegex.test(formData.phone)) {
+      setError("Số điện thoại phải bao gồm đúng 10 chữ số");
+      return;
+    }
+
+    // 3. Validate mật khẩu
+    // Độ dài 6-15, có hoa, thường, đặc biệt, không khoảng trắng
+    if (formData.password.length < 6 || formData.password.length > 15) {
+      setError("Mật khẩu phải dài từ 6 đến 15 ký tự");
+      return;
+    }
+    if (/\s/.test(formData.password)) {
+      setError("Mật khẩu không được chứa khoảng trắng");
+      return;
+    }
+    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/;
+    if (!pwdRegex.test(formData.password)) {
+      setError("Mật khẩu phải bao gồm ít nhất một chữ hoa, một chữ thường và một ký tự đặc biệt");
       return;
     }
 
@@ -39,8 +73,8 @@ function Register() {
       await registerUser(formData);
       setSuccess(true);
       setTimeout(() => {
-        navigate("/login");
-      }, 2000);
+        navigate(`/verify-email?email=${formData.email}`);
+      }, 500);
     } catch (err) {
       setError(err?.message || "Đăng ký thất bại. Vui lòng thử lại");
     } finally {
@@ -120,14 +154,23 @@ function Register() {
           </div>
 
           {success && (
-            <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-lg flex items-start space-x-3">
-              <Check className="h-5 w-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-emerald-900">
-                  Đăng ký thành công!
-                </p>
-                <p className="text-sm text-emerald-700">Đang chuyển hướng...</p>
+            <div className="mb-6 p-6 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col items-center text-center">
+              <div className="bg-emerald-100 p-3 rounded-full mb-4">
+                <Mail className="h-8 w-8 text-emerald-600" />
               </div>
+              <h3 className="text-xl font-bold text-emerald-900 mb-2">Đăng ký thành công!</h3>
+              <p className="text-emerald-700 mb-4">
+                Chúng tôi đã gửi một email xác thực đến địa chỉ <strong>{formData.email}</strong>.
+              </p>
+              <p className="text-sm text-emerald-600 bg-white p-3 rounded border border-emerald-100 italic">
+                Vui lòng kiểm tra hộp thư (bao gồm cả thư rác) để lấy mã xác thực 6 số và kích hoạt tài khoản.
+              </p>
+              <button 
+                onClick={() => navigate('/login')}
+                className="mt-6 text-emerald-600 font-medium hover:underline"
+              >
+                Quay lại trang đăng nhập
+              </button>
             </div>
           )}
 
@@ -137,6 +180,7 @@ function Register() {
             </div>
           )}
 
+          {!success && (
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Full Name */}
             <div>
@@ -224,6 +268,9 @@ function Register() {
                   )}
                 </button>
               </div>
+              <p className="mt-1 text-[10px] text-gray-500 italic">
+                * Mật khẩu dài từ 6 đến 15 ký tự, bao gồm chữ hoa, chữ thường và ít nhất một ký tự đặc biệt, không có khoảng trắng.
+              </p>
             </div>
 
             {/* Submit Button */}
@@ -258,6 +305,7 @@ function Register() {
               <span>Bảo mật & An toàn thông tin</span>
             </p>
           </form>
+          )}
         </div>
       </div>
     </div>

@@ -1,15 +1,15 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 
 const AUTH_STORAGE_KEY = "waste_auth_user";
 
 // Keep old references for compatibility, but primarily use string roles now.
 export const ROLE_NAMES = {
-  1: "Admin",
-  2: "Collector",
-  3: "Citizen",
-  4: "Enterprise",
-  5: "Manager",
+  0: "Citizen",
+  1: "Collector",
+  2: "Enterprise",
+  3: "Admin",
+  4: "Manager",
   r1: "Admin",
   r2: "Collector", 
   r3: "Citizen",
@@ -32,30 +32,67 @@ export function AuthProvider({ children }) {
     const stored = localStorage.getItem(AUTH_STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Tự động sửa lỗi nếu thiếu field 'id' (cho các session cũ)
+        if (parsed) {
+          if (!parsed.id) {
+            parsed.id = parsed.userId || parsed.UserId || parsed.user_id;
+          }
+          if (!parsed.citizenId) {
+            parsed.citizenId = parsed.CitizenId;
+          }
+          
+          if (parsed.id || parsed.citizenId) {
+             localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(parsed));
+          }
+        }
+        return parsed;
       } catch {
         localStorage.removeItem(AUTH_STORAGE_KEY);
       }
     }
     return null;
   });
+  
+  // Listen for storage changes across tabs to sync logout
+  useEffect(() => {
+    const handleStorageChange = (e) => {
+      if (e.key === AUTH_STORAGE_KEY && !e.newValue) {
+        // If the auth key is removed in another tab, logout this tab too
+        setUser(null);
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
 
   const login = (authData) => {
-    // BE trả về { token, user: { ... } }
+    // BE trả về flat object: { token, refreshToken, userId, email, fullName, role, status, expiresAt }
+    console.log("Raw authData from API:", authData);
     const userFromApi = authData.user || authData;
     const roleId = userFromApi.role || userFromApi.roleId;
     const roleName = ROLE_NAMES[roleId] || roleId || "Citizen";
 
+    // BE trả về userId (camelCase), phải đảm bảo extract đúng
+    const rawId = userFromApi.id || userFromApi.userId || userFromApi.UserId || userFromApi.citizenId || userFromApi.CitizenId || userFromApi.user_id;
+    const numericId = rawId !== undefined && rawId !== null ? Number(rawId) : undefined;
+
     const userToStore = {
-      id: userFromApi.id,
+      id: numericId,
+      citizenId: userFromApi.citizenId || userFromApi.CitizenId,
       email: userFromApi.email,
-      full_name: userFromApi.fullName || userFromApi.full_name,
+      full_name: userFromApi.fullName || userFromApi.FullName || userFromApi.full_name,
       phone: userFromApi.phone,
       role: roleName,
-      roleName: roleName, // Đảm bảo roleName luôn tồn tại cho Header
-      token: authData.token, // Cần lưu token để AxiosClient đọc được
+      roleName: roleName,
+      token: authData.token || userFromApi.token,
     };
     
+    console.log("Saving user to store (detailed):", userToStore);
+    if (!userToStore.id) {
+      console.warn("WARNING: No User ID found in API response! Keys available:", Object.keys(userFromApi));
+    }
     setUser(userToStore);
     localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(userToStore));
   };

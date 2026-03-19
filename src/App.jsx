@@ -22,6 +22,7 @@ import ManagerSchedule from "./components/Manager/ManagerSchedule.jsx";
 import Rewards from "./components/Page/Rewards.jsx";
 import Rankings from "./components/Page/Rankings.jsx";
 import Profile from "./components/Page/Profile.jsx";
+import VerifyEmail from "./components/Auth/VerifyEmail.jsx";
 
 function App() {
   return (
@@ -98,6 +99,7 @@ function App() {
                   <Route path="/" element={<Homepage />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/login" element={<Login />} />
+                  <Route path="/verify-email" element={<VerifyEmail />} />
                   <Route
                     path="/admin"
                     element={
