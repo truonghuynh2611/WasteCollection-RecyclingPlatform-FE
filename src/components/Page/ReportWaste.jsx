@@ -125,7 +125,7 @@ function ReportWaste() {
     setToast({ message, type });
   };
 
-  const userPoints = user?.total_points ?? 0;
+  const userPoints = user?.totalPoints ?? 0;
   const userRank = getRankFromPoints(userPoints).name;
   const { progress, needed, nextRank } = getRankProgress(userPoints);
 
@@ -330,7 +330,7 @@ function ReportWaste() {
       {/* Welcome */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
-          Xin chào, <span className="text-emerald-600">{user?.full_name}</span>
+          Xin chào, <span className="text-emerald-600">{user?.fullName}</span>
         </h1>
         <p className="text-gray-600 mt-1">
           Báo cáo rác thải và theo dõi điểm thưởng của bạn

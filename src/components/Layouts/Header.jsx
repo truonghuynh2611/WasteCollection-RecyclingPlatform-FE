@@ -73,7 +73,7 @@ function Header() {
                 >
                   <User className="h-4 w-4" />
                   <span className="font-medium text-gray-900">
-                    {user?.full_name}
+                    {user?.fullName}
                   </span>
                   <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-xs font-medium">
                     {user?.roleName}

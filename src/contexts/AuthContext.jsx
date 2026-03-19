@@ -82,12 +82,12 @@ export function AuthProvider({ children }) {
       id: numericId,
       citizenId: userFromApi.citizenId || userFromApi.CitizenId,
       email: userFromApi.email,
-      full_name: userFromApi.fullName || userFromApi.FullName || userFromApi.full_name,
+      fullName: userFromApi.fullName || userFromApi.FullName || userFromApi.full_name,
       phone: userFromApi.phone,
       role: roleName,
       roleName: roleName,
       token: authData.token || userFromApi.token,
-      total_points: userFromApi.totalPoints || userFromApi.TotalPoints || 0,
+      totalPoints: userFromApi.totalPoints || userFromApi.TotalPoints || 0,
     };
     
     console.log("Saving user to store (detailed):", userToStore);

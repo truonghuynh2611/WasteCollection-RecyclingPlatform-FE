@@ -17,7 +17,7 @@ const Profile = () => {
   // Edit logic states
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    full_name: "",
+    fullName: "",
     email: "",
     phone: "",
     streetAddress: "",
@@ -35,7 +35,7 @@ const Profile = () => {
   useEffect(() => {
     if (user) {
       setFormData({
-        full_name: user.full_name || "",
+        fullName: user.fullName || "",
         email: user.email || "",
         phone: user.phone || "",
         streetAddress: user.streetAddress || "",
@@ -214,8 +214,8 @@ const Profile = () => {
                   <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Họ và tên</label>
                   <input
                     type="text"
-                    name="full_name"
-                    value={formData.full_name}
+                    name="fullName"
+                    value={formData.fullName}
                     onChange={handleInputChange}
                     placeholder="Nhập họ và tên"
                     className="text-4xl font-black text-gray-900 mb-2 w-full bg-gray-50 border-b-2 border-emerald-500 focus:outline-none focus:bg-emerald-50 transition-colors p-1 rounded-t-lg"
@@ -223,7 +223,7 @@ const Profile = () => {
                 </div>
               ) : (
                 <>
-                  <h1 className="text-4xl font-black text-gray-900 mb-2">{user.full_name}</h1>
+                  <h2 className="text-3xl font-black text-gray-900 mb-1">{user?.fullName || "Người dùng"}</h2>
                   <p className="text-gray-500 flex items-center gap-2">
                     <Shield size={18} className="text-emerald-500" />
                     <span className="font-semibold uppercase tracking-wider text-sm">{user.roleName}</span>
@@ -238,7 +238,7 @@ const Profile = () => {
               </div>
               <div>
                 <p className="text-emerald-700 text-xs font-bold uppercase tracking-tight">Tổng điểm tích lũy</p>
-                <p className="text-3xl font-black text-emerald-900">{totalPoints.toLocaleString()} <span className="text-sm font-normal">điểm</span></p>
+                <p className="text-3xl font-black text-emerald-900">{(user.totalPoints || 0).toLocaleString()} <span className="text-sm font-normal">điểm</span></p>
               </div>
             </div>
           </div>

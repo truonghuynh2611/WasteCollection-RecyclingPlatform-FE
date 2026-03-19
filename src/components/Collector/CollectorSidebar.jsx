@@ -32,10 +32,10 @@ export default function CollectorSidebar() {
       <div className="px-4 py-3 bg-green-50 mx-3 mt-4 rounded-xl">
         <div className="flex items-center gap-2">
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-green-400 to-teal-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
-            {(user?.full_name || "S").charAt(0)}
+            {(user?.fullName || "S").charAt(0)}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">{user?.full_name || "Người thu gom"}</p>
+            <p className="text-sm font-semibold text-gray-800 truncate">{user?.fullName || "Người thu gom"}</p>
             <p className="text-xs text-green-600">Collector</p>
           </div>
         </div>

@@ -1,73 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MapPin, Users, UserCheck, ChevronDown, ChevronUp, Plus,
   Search, Eye, X, Shield, Phone, Mail
 } from "lucide-react";
 import Sidebar from "../Layouts/Sidebar";
-
-const AREAS = [
-  {
-    id: 1,
-    name: "Khu vực 1A",
-    district: "Quận 1",
-    manager: { name: "Trần Văn Quản", phone: "0901000001", email: "quan.tran@ecoconnect.vn" },
-    collectors: [
-      { id: 1, name: "Nguyễn Văn An", status: "Hoạt động", completed: 120 },
-      { id: 2, name: "Trần Thị Bích", status: "Hoạt động", completed: 95 },
-      { id: 3, name: "Lê Quốc Dũng", status: "Nghỉ phép", completed: 40 },
-    ],
-    totalReports: 215,
-    status: "Hoạt động",
-  },
-  {
-    id: 2,
-    name: "Khu vực 1B",
-    district: "Quận 1",
-    manager: { name: "Phạm Thị Liên", phone: "0901000002", email: "lien.pham@ecoconnect.vn" },
-    collectors: [
-      { id: 4, name: "Lê Văn Cường", status: "Hoạt động", completed: 78 },
-      { id: 5, name: "Hoàng Minh Tuấn", status: "Hoạt động", completed: 63 },
-    ],
-    totalReports: 141,
-    status: "Hoạt động",
-  },
-  {
-    id: 3,
-    name: "Khu vực 2A",
-    district: "Quận 2",
-    manager: { name: "Đinh Văn Hải", phone: "0901000003", email: "hai.dinh@ecoconnect.vn" },
-    collectors: [
-      { id: 6, name: "Phạm Minh Dũng", status: "Nghỉ phép", completed: 68 },
-      { id: 7, name: "Hoàng Thị Emilia", status: "Hoạt động", completed: 55 },
-      { id: 8, name: "Vũ Quốc Fang", status: "Bị khóa", completed: 22 },
-    ],
-    totalReports: 198,
-    status: "Hoạt động",
-  },
-  {
-    id: 4,
-    name: "Khu vực 7A",
-    district: "Quận 7",
-    manager: { name: "Nguyễn Thị Hoa", phone: "0901000004", email: "hoa.nguyen@ecoconnect.vn" },
-    collectors: [
-      { id: 9, name: "Trần Quốc Bảo", status: "Hoạt động", completed: 88 },
-      { id: 10, name: "Lê Thị Cúc", status: "Hoạt động", completed: 74 },
-    ],
-    totalReports: 162,
-    status: "Hoạt động",
-  },
-  {
-    id: 5,
-    name: "Khu vực 9A",
-    district: "Quận 9",
-    manager: null,
-    collectors: [
-      { id: 11, name: "Phạm Gia Bảo", status: "Hoạt động", completed: 51 },
-    ],
-    totalReports: 89,
-    status: "Thiếu quản lí",
-  },
-];
+import { getAllAreas, createArea, updateArea, deleteArea } from "../../api/area";
 
 const statusStyle = {
   "Hoạt động": "bg-green-100 text-green-700",
@@ -86,17 +23,34 @@ export default function AreaManagement() {
   const [expandedId, setExpandedId] = useState(null);
   const [selectedArea, setSelectedArea] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [newArea, setNewArea] = useState({ name: "", district: "", managerName: "", managerPhone: "", managerEmail: "" });
+  const [newArea, setNewArea] = useState({ name: "", districtId: "", managerName: "", managerPhone: "", managerEmail: "" });
+  const [areas, setAreas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = AREAS.filter(a =>
-    a.name.toLowerCase().includes(search.toLowerCase()) ||
-    a.district.toLowerCase().includes(search.toLowerCase())
+  useEffect(() => {
+    fetchAreas();
+  }, []);
+
+  const fetchAreas = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllAreas();
+      setAreas(data);
+    } catch (error) {
+      console.error("Failed to fetch areas:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filtered = areas.filter(a =>
+    (a.name || "").toLowerCase().includes(search.toLowerCase()) ||
+    (a.district?.districtName || "").toLowerCase().includes(search.toLowerCase())
   );
 
   const toggle = (id) => setExpandedId(prev => prev === id ? null : id);
 
-  const totalCollectors = AREAS.reduce((sum, a) => sum + a.collectors.length, 0);
-  const noManager = AREAS.filter(a => !a.manager).length;
+  const totalTeams = areas.reduce((sum, a) => sum + (a.teamCount || 0), 0);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -123,10 +77,10 @@ export default function AreaManagement() {
             {/* Stats */}
             <div className="grid grid-cols-4 gap-4 mb-6">
               {[
-                { label: "Tổng khu vực", value: AREAS.length, color: "text-gray-800", bg: "bg-white" },
-                { label: "Đang hoạt động", value: AREAS.filter(a => a.status === "Hoạt động").length, color: "text-green-600", bg: "bg-green-50" },
-                { label: "Thiếu quản lí", value: noManager, color: "text-amber-600", bg: "bg-amber-50" },
-                { label: "Tổng người thu gom", value: totalCollectors, color: "text-blue-600", bg: "bg-blue-50" },
+                { label: "Tổng khu vực", value: areas.length, color: "text-gray-800", bg: "bg-white" },
+                { label: "Đang hoạt động", value: areas.length, color: "text-green-600", bg: "bg-green-50" },
+                { label: "Thiếu quản lí", value: 0, color: "text-amber-600", bg: "bg-amber-50" },
+                { label: "Tổng đội thu gom", value: totalTeams, color: "text-blue-600", bg: "bg-blue-50" },
               ].map((s, i) => (
                 <div key={i} className={`${s.bg} rounded-xl border border-gray-200 p-5 shadow-sm`}>
                   <p className="text-sm text-gray-500 mb-1">{s.label}</p>
@@ -152,8 +106,12 @@ export default function AreaManagement() {
 
             {/* Area Cards */}
             <div className="space-y-3">
-              {filtered.map(area => (
-                <div key={area.id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              {loading ? (
+                Array(3).fill(0).map((_, i) => (
+                  <div key={i} className="bg-white rounded-xl border border-gray-200 h-24 animate-pulse"></div>
+                ))
+              ) : filtered.map(area => (
+                <div key={area.areaId} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   {/* Area Header Row */}
                   <div className="flex items-center gap-4 px-6 py-5">
                     {/* Icon */}
@@ -165,9 +123,9 @@ export default function AreaManagement() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="text-base font-bold text-gray-800">{area.name}</h3>
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyle[area.status]}`}>{area.status}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusStyle["Hoạt động"]}`}>Hoạt động</span>
                       </div>
-                      <p className="text-sm text-gray-500">{area.district}</p>
+                      <p className="text-sm text-gray-500">{area.district?.districtName || "Chưa xác định"}</p>
                     </div>
 
                     {/* Manager */}
@@ -177,23 +135,19 @@ export default function AreaManagement() {
                       </div>
                       <div>
                         <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Quản lí</p>
-                        {area.manager ? (
-                          <p className="text-sm font-semibold text-gray-800">{area.manager.name}</p>
-                        ) : (
-                          <p className="text-sm text-amber-600 font-medium italic">Chưa có quản lí</p>
-                        )}
+                        <p className="text-sm text-amber-600 font-medium italic">Chưa có quản lí</p>
                       </div>
                     </div>
 
-                    {/* Staff Count */}
+                    {/* Team Count */}
                     <div className="px-6 border-l border-gray-100 text-center">
-                      <p className="text-2xl font-bold text-gray-800">{area.collectors.length}</p>
-                      <p className="text-xs text-gray-400">Người thu gom</p>
+                      <p className="text-2xl font-bold text-gray-800">{area.teamCount || 0}</p>
+                      <p className="text-xs text-gray-400">Đội thu gom</p>
                     </div>
 
                     {/* Total Reports */}
                     <div className="px-6 border-l border-gray-100 text-center">
-                      <p className="text-2xl font-bold text-green-600">{area.totalReports}</p>
+                      <p className="text-2xl font-bold text-green-600">{area.totalReports || 0}</p>
                       <p className="text-xs text-gray-400">Báo cáo</p>
                     </div>
 
@@ -207,12 +161,12 @@ export default function AreaManagement() {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => toggle(area.id)}
+                        onClick={() => toggle(area.areaId)}
                         className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                       >
                         <Users className="w-4 h-4" />
-                        <span>Người thu gom</span>
-                        {expandedId === area.id
+                        <span>Đội thu gom</span>
+                        {expandedId === area.areaId
                           ? <ChevronUp className="w-4 h-4" />
                           : <ChevronDown className="w-4 h-4" />
                         }
@@ -220,33 +174,14 @@ export default function AreaManagement() {
                     </div>
                   </div>
 
-                  {/* Expanded Staff List */}
-                  {expandedId === area.id && (
+                  {/* Expanded List (Teams instead of collectors for now) */}
+                  {expandedId === area.areaId && (
                     <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-                        Danh sách người thu gom khu vực {area.name}
+                        Danh sách đội thu gom khu vực {area.name}
                       </p>
-                      <div className="grid grid-cols-3 gap-3">
-                        {area.collectors.map(s => (
-                          <div key={s.id} className="bg-white rounded-lg border border-gray-200 px-4 py-3 flex items-center gap-3">
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-semibold shrink-0">
-                              {s.name.charAt(0)}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-800 truncate">{s.name}</p>
-                              <div className="flex items-center gap-1.5 mt-0.5">
-                                <span className={`w-1.5 h-1.5 rounded-full ${staffStatusDot[s.status]}`} />
-                                <span className="text-xs text-gray-500">{s.status}</span>
-                              </div>
-                            </div>
-                            <p className="text-xs text-green-600 font-semibold shrink-0">{s.completed} HT</p>
-                          </div>
-                        ))}
-                        {/* Add staff button */}
-                        <button className="bg-white rounded-lg border border-dashed border-gray-300 hover:border-green-400 hover:bg-green-50 px-4 py-3 flex items-center gap-2 text-gray-400 hover:text-green-600 transition-colors">
-                        <Plus className="w-4 h-4" />
-                        <span className="text-sm">Thêm người thu gom</span>
-                      </button>
+                      <div className="text-sm text-gray-500 italic">
+                        Tính năng xem chi tiết đội ngũ đang được cập nhật...
                       </div>
                     </div>
                   )}
@@ -268,7 +203,7 @@ export default function AreaManagement() {
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-gray-800">{selectedArea.name}</h3>
-                  <p className="text-sm text-gray-500">{selectedArea.district}</p>
+                  <p className="text-sm text-gray-500">{selectedArea.district?.districtName || "Chưa xác định"}</p>
                 </div>
               </div>
               <button onClick={() => setSelectedArea(null)} className="p-1.5 hover:bg-gray-100 rounded-lg">
@@ -276,65 +211,29 @@ export default function AreaManagement() {
               </button>
             </div>
 
-            {/* Manager Info */}
-            <div className="bg-indigo-50 rounded-xl p-4 mb-5">
-              <div className="flex items-center gap-2 mb-3">
-                <Shield className="w-4 h-4 text-indigo-600" />
-                <p className="text-sm font-semibold text-indigo-700">Quản lí khu vực</p>
+            <div className="space-y-4">
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Mã khu vực</span>
+                <span className="font-semibold text-gray-800">#{selectedArea.areaId}</span>
               </div>
-              {selectedArea.manager ? (
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white text-lg font-bold">
-                    {selectedArea.manager.name.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-gray-800">{selectedArea.manager.name}</p>
-                    <div className="flex items-center gap-3 mt-1">
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Phone className="w-3 h-3" />
-                        <span>{selectedArea.manager.phone}</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-gray-500">
-                        <Mail className="w-3 h-3" />
-                        <span>{selectedArea.manager.email}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-5 h-5 text-amber-500" />
-                  <p className="text-sm text-amber-600 font-medium">Khu vực này chưa có quản lí</p>
-                  <button className="ml-auto text-xs text-indigo-600 hover:underline">+ Gán quản lí</button>
-                </div>
-              )}
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Số đội thu gom</span>
+                <span className="font-semibold text-blue-600">{selectedArea.teamCount || 0} đội</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-50">
+                <span className="text-gray-500 font-medium">Tổng báo cáo</span>
+                <span className="font-semibold text-green-600">{selectedArea.totalReports || 0}</span>
+              </div>
             </div>
 
-            {/* Staff */}
-            <div>
-              <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-gray-500" />
-                Người thu gom ({selectedArea.collectors.length} người)
+            <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3">
+              <Shield className="w-5 h-5 text-amber-600 shrink-0" />
+              <p className="text-sm text-amber-700">
+                Thông tin quản lí và danh sách nhân sự chi tiết đang được đồng bộ hóa từ hệ thống nhân sự.
               </p>
-              <div className="space-y-2">
-                {selectedArea.collectors.map(s => (
-                  <div key={s.id} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center text-white text-sm font-semibold">
-                      {s.name.charAt(0)}
-                    </div>
-                    <span className="flex-1 text-sm text-gray-800">{s.name}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      s.status === "Hoạt động" ? "bg-green-100 text-green-700"
-                      : s.status === "Nghỉ phép" ? "bg-yellow-100 text-yellow-700"
-                      : "bg-red-100 text-red-600"
-                    }`}>{s.status}</span>
-                    <span className="text-xs text-green-600 font-semibold w-16 text-right">{s.completed} HT</span>
-                  </div>
-                ))}
-              </div>
             </div>
 
-            <button onClick={() => setSelectedArea(null)} className="mt-5 w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
+            <button onClick={() => setSelectedArea(null)} className="mt-6 w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
               Đóng
             </button>
           </div>

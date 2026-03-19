@@ -16,7 +16,7 @@ function Rewards() {
   const [redeemingId, setRedeemingId] = useState(null);
   const [confirmRedemption, setConfirmRedemption] = useState(null); // voucher object to confirm
 
-  const userPoints = user?.total_points ?? 0;
+  const userPoints = user?.totalPoints ?? 0;
 
   useEffect(() => {
     fetchVouchers();
@@ -53,7 +53,7 @@ function Rewards() {
       const res = await redeemVoucher(user.citizenId, voucher.voucherId);
       if (res.success) {
         // Update points in auth context without reloading
-        updateUser({ total_points: user.total_points - voucher.pointsRequired });
+        updateUser({ totalPoints: user.totalPoints - voucher.pointsRequired });
         
         setSuccessRedemption({
           message: res.message || "Đổi quà thành công!",

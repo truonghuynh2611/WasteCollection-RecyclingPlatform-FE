@@ -1,65 +1,53 @@
-const API_URL = "http://localhost:3001";
+import axiosClient from "./axiosClient";
 
 // --- DÀNH CHO ADMIN ---
 // 1. Phân công một báo cáo rác cho nhân viên thu gom
 export const assignTask = async (assignmentData) => {
-  const response = await fetch(`${API_URL}/assignments`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...assignmentData,
-      assigned_at: new Date().toISOString(),
-      accepted_at: null,
-      completed_at: null,
-    }),
-  });
-  return response.json();
+  try {
+    const response = await axiosClient.post("/ReportAssignment", assignmentData);
+    return response.data;
+  } catch (error) {
+    console.error("Error assigning task:", error);
+    throw error;
+  }
 };
 
 // --- DÀNH CHO COLLECTOR (Nhân viên thu gom) ---
-// 2. Lấy danh sách các công việc được giao cho mình.
-// JSON Server hiện tại không filter query ổn định, nên:
-// - Lấy toàn bộ assignments, filter theo collectorId ở client
-// - Lấy thêm waste_reports và tự gắn vào field waste_report để tiện hiển thị
-export const getMyTasks = async (collectorId) => {
-  const [assignRes, reportRes] = await Promise.all([
-    fetch(`${API_URL}/assignments`),
-    fetch(`${API_URL}/waste_reports`),
-  ]);
-
-  if (!assignRes.ok || !reportRes.ok) {
-    throw new Error("Không tải được danh sách công việc.");
+// 2. Lấy danh sách nhiệm vụ của nhân viên thu gom (dựa trên TeamId của họ)
+export const getMyTasks = async () => {
+  try {
+    const response = await axiosClient.get("/Collector/tasks");
+    if (response.data && response.data.success) {
+      return response.data.data;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching tasks:", error);
+    throw error;
   }
-
-  const [allAssignments, allReports] = await Promise.all([
-    assignRes.json(),
-    reportRes.json(),
-  ]);
-
-  const normalizedId = String(collectorId);
-
-  const myAssignments = Array.isArray(allAssignments)
-    ? allAssignments.filter(
-        (a) => String(a.collectorId) === normalizedId,
-      )
-    : [];
-
-  const reportsById = new Map(
-    (Array.isArray(allReports) ? allReports : []).map((r) => [String(r.id), r]),
-  );
-
-  return myAssignments.map((a) => ({
-    ...a,
-    waste_report: reportsById.get(String(a.reportId)) || null,
-  }));
 };
 
-// 3. Cập nhật trạng thái công việc (Chấp nhận hoặc Hoàn thành)
-export const updateTaskStatus = async (taskId, updateData) => {
-  const response = await fetch(`${API_URL}/assignments/${taskId}`, {
-    method: "PATCH", // Dùng PATCH để chỉ cập nhật các trường thay đổi
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(updateData),
-  });
-  return response.json();
+// 3. Cập nhật trạng thái nhiệm vụ (Chờ xử lý, Đang làm, Hoàn thành)
+export const updateTaskStatus = async (taskId, status) => {
+  try {
+    // Truyền status dưới dạng chuỗi thô (JSON string) cho API
+    const response = await axiosClient.patch(`/Collector/tasks/${taskId}/status`, JSON.stringify(status), {
+      headers: { "Content-Type": "application/json" }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating task status:", error);
+    throw error;
+  }
+};
+
+// 4. Xác nhận đã thu gom (có thể kèm ảnh và tọa độ)
+export const confirmCollection = async (reportId, data) => {
+  try {
+    const response = await axiosClient.post(`/WasteReport/${reportId}/confirm`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error confirming collection:", error);
+    throw error;
+  }
 };

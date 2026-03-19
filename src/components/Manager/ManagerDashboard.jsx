@@ -1,15 +1,41 @@
+import { useState, useEffect } from "react";
 import { Users, CalendarDays, TrendingUp, AlertCircle } from "lucide-react";
 import ManagerSidebar from "./ManagerSidebar";
 import NotificationDropdown from "../common/NotificationDropdown";
-
-const stats = [
-  { label: "Người thu gom khu vực", value: 12, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-  { label: "Ca làm hôm nay", value: 4, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
-  { label: "Yêu cầu chờ xử lý", value: 5, icon: AlertCircle, color: "text-yellow-600", bg: "bg-yellow-50" },
-  { label: "Tỷ lệ hoàn thành (Tuần)", value: "92%", icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
-];
+import { getCitizenStats } from "../../api/user";
 
 export default function ManagerDashboard() {
+  const [stats, setStats] = useState([
+    { label: "Người thu gom khu vực", value: 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Ca làm hôm nay", value: 0, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Yêu cầu chờ xử lý", value: 0, icon: AlertCircle, color: "text-yellow-600", bg: "bg-yellow-50" },
+    { label: "Tỷ lệ hoàn thành (Tuần)", value: "0%", icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const data = await getCitizenStats();
+      if (data) {
+        setStats([
+          { label: "Tổng người dùng", value: data.totalCitizens, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Người dùng mới", value: data.activeCitizens, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
+          { label: "Điểm hệ thống", value: data.totalPoints, icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
+          { label: "Yêu cầu chờ xử lý", value: 5, icon: AlertCircle, color: "text-yellow-600", bg: "bg-yellow-50" },
+        ]);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard stats:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       <ManagerSidebar />
@@ -31,14 +57,14 @@ export default function ManagerDashboard() {
             {stats.map((s, i) => {
               const Icon = s.icon;
               return (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow">
+                <div key={i} className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow ${loading ? 'animate-pulse' : ''}`}>
                   <div className="flex items-center justify-between mb-4">
                     <p className="text-sm text-gray-500 font-medium">{s.label}</p>
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.bg}`}>
                       <Icon className={`w-5 h-5 ${s.color}`} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-800">{s.value}</p>
+                  <p className="text-3xl font-bold text-gray-800">{loading ? '...' : s.value}</p>
                 </div>
               );
             })}

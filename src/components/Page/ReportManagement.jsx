@@ -38,7 +38,7 @@ const statusLabels = {
 function ViewModal({ item, statusColors, statusLabels, onClose, onEdit }) {
   if (!item) return null;
   
-  const API_BASE_URL = "http://localhost:5000";
+  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>

@@ -33,10 +33,10 @@ export default function ManagerSidebar() {
       <div className="px-4 py-4 bg-indigo-50 mx-4 mt-6 rounded-xl border border-indigo-100">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shrink-0 shadow-sm">
-            {(user?.full_name || "M").charAt(0)}
+            {(user?.fullName || "M").charAt(0)}
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-bold text-gray-800 truncate">{user?.full_name || "Quản lí KV"}</p>
+            <p className="text-sm font-bold text-gray-800 truncate">{user?.fullName || "Quản lí KV"}</p>
             <p className="text-xs text-indigo-600 font-medium">Khu vực 1A • Quận 1</p>
           </div>
         </div>
