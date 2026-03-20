@@ -1,20 +1,40 @@
+// Nhập các hook cần thiết từ React
 import { useState, useRef, useEffect } from "react";
+// Nhập hook điều hướng từ react-router-dom
 import { useNavigate } from "react-router-dom";
+// Nhập các icon minh họa trạng thái và hành động từ lucide-react
 import { Bell, Check, Trash2, Info, Eye, X, MoreVertical, Trash } from "lucide-react";
+// Nhập context quản lý thông báo và context xác thực
 import { useNotification } from "../../contexts/NotificationContext";
 import { useAuth, ROLES } from "../../contexts/AuthContext";
+// Nhập component modal xác nhận dùng chung
 import ConfirmModal from "./ConfirmModal";
 
 export default function NotificationDropdown() {
+  // State quản lý việc ẩn/hiện danh sách thả xuống
   const [isOpen, setIsOpen] = useState(false);
+  // State lưu thông báo đang được chọn để xem chi tiết
   const [selectedNotif, setSelectedNotif] = useState(null);
+  // State hiển thị modal xác nhận xóa tất cả
   const [showDeleteAllConfirm, setShowDeleteAllConfirm] = useState(false);
+  
   const dropdownRef = useRef(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, deleteAllNotifications } = useNotification();
+  
+  // Lấy các dữ liệu và hàm thao tác từ NotificationContext
+  const { 
+    notifications, 
+    unreadCount, 
+    markAsRead, 
+    markAllAsRead, 
+    deleteNotification, 
+    deleteAllNotifications 
+  } = useNotification();
 
-  // Close dropdown when clicking outside
+  /**
+   * TỰ ĐỘNG ĐÓNG DROPDOWN KHI CLICK RA NGOÀI
+   */
   useEffect(() => {
     function handleClickOutside(event) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -26,33 +46,46 @@ export default function NotificationDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  /**
+   * Xử lý khi người dùng nhấn vào một thông báo trong danh sách
+   */
   const handleNotificationClick = (notif) => {
+    // Nếu thông báo chưa đọc, đánh dấu là đã đọc trên server
     if (!notif.isread) {
       markAsRead(notif.notificationId);
     }
+    // Hiển thị vùng chi tiết thông báo
     setSelectedNotif(notif);
   };
 
+  /**
+   * Xử lý việc chuyển hướng đến trang chi tiết của báo cáo rác liên quan
+   */
   const handleViewDetail = (e, notif) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Chặn sự kiện nổi bọt làm đóng dropdown
     if (!notif.isread) {
       markAsRead(notif.notificationId);
     }
     
     setSelectedNotif(null);
 
-    // Navigate to respective page based on role and reportId
+    // ĐIỀU HƯỚNG DỰA TRÊN ROLE CỦA NGƯỜI DÙNG VÀ ID BÁO CÁO
     if (notif.reportId) {
+      // Nếu là Admin hoặc Quản lý khu vực
       if (user?.role === ROLES.ADMIN || user?.role === ROLES.AREA_MANAGER) {
         const path = (user.role === ROLES.ADMIN || user.role === "Admin") ? "/reportManagement" : "/manager/requests";
         setIsOpen(false);
         setSelectedNotif(null);
         navigate(`${path}?reportId=${notif.reportId}`, { replace: true });
-      } else if (user?.role === ROLES.CITIZEN) {
+      } 
+      // Nếu là Người dân thường
+      else if (user?.role === ROLES.CITIZEN) {
         setIsOpen(false);
         setSelectedNotif(null);
         navigate(`/report-waste?reportId=${notif.reportId}`, { replace: true });
-      } else if (user?.role === ROLES.COLLECTOR) {
+      } 
+      // Nếu là Người thu gom
+      else if (user?.role === ROLES.COLLECTOR) {
         setIsOpen(false);
         setSelectedNotif(null);
         navigate(`/collector/tasks?reportId=${notif.reportId}`, { replace: true });
@@ -60,24 +93,37 @@ export default function NotificationDropdown() {
     }
   };
 
+  /**
+   * Xóa một thông báo cụ thể
+   */
   const handleDelete = (e, notificationId) => {
     e.stopPropagation();
     deleteNotification(notificationId);
+    // Nếu đang xem chi tiết thông báo bị xóa, ẩn vùng chi tiết đi
     if (selectedNotif?.notificationId === notificationId) {
       setSelectedNotif(null);
     }
   };
 
+  /**
+   * Mở modal xác nhận trước khi xóa sạch danh sách
+   */
   const handleDeleteAll = () => {
     setShowDeleteAllConfirm(true);
   };
 
+  /**
+   * Thực hiện gọi API xóa tất cả và cập nhật UI
+   */
   const executeDeleteAll = () => {
     deleteAllNotifications();
     setSelectedNotif(null);
     setShowDeleteAllConfirm(false);
   };
 
+  /**
+   * HÀM TIỆN ÍCH: Hiển thị thời gian tương đối (Ví dụ: "5 phút trước")
+   */
   const timeAgo = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -92,6 +138,9 @@ export default function NotificationDropdown() {
     return `${diffDays} ngày trước`;
   };
 
+  /**
+   * HÀM TIỆN ÍCH: Định dạng ngày tháng đầy đủ
+   */
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString("vi-VN", {
@@ -102,12 +151,13 @@ export default function NotificationDropdown() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* Bell Button */}
+      {/* NÚT CHUÔNG THÔNG BÁO */}
       <button 
         onClick={() => { setIsOpen(!isOpen); setSelectedNotif(null); }}
         className="relative p-2 text-gray-600 hover:text-green-500 hover:bg-green-50 rounded-full transition-colors"
       >
         <Bell className="w-5 h-5" />
+        {/* Badge hiển thị số lượng thông báo chưa đọc */}
         {unreadCount > 0 && (
           <span className="absolute top-0.5 right-0.5 min-w-[18px] h-[18px] text-[10px] font-bold text-white bg-red-500 rounded-full flex items-center justify-center border-2 border-white px-1">
             {unreadCount > 99 ? "99+" : unreadCount}
@@ -115,10 +165,11 @@ export default function NotificationDropdown() {
         )}
       </button>
 
+      {/* DANH SÁCH THẢ XUỐNG (DROPDOWN MENU) */}
       {isOpen && (
         <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden flex flex-col" style={{ maxHeight: "520px" }}>
           
-          {/* Header */}
+          {/* PHẦN ĐẦU DROPDOWN: Tiêu đề và các nút thao tác nhanh */}
           <div className="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -130,6 +181,7 @@ export default function NotificationDropdown() {
                 )}
               </div>
               <div className="flex items-center gap-1">
+                {/* Nút đánh dấu tất cả đã đọc */}
                 {unreadCount > 0 && (
                   <button 
                     onClick={markAllAsRead}
@@ -140,6 +192,7 @@ export default function NotificationDropdown() {
                     Đã đọc
                   </button>
                 )}
+                {/* Nút xóa sạch các thông báo */}
                 {notifications.length > 0 && (
                   <button 
                     onClick={handleDeleteAll}
@@ -154,7 +207,7 @@ export default function NotificationDropdown() {
             </div>
           </div>
 
-          {/* Detail View - when a notification is selected */}
+          {/* VÙNG XEM CHI TIẾT: Hiển thị khi người dùng click vào 1 thông báo */}
           {selectedNotif && (
             <div className="p-4 border-b border-gray-100 bg-emerald-50/40 animate-fadeIn">
               <div className="flex items-center justify-between mb-2">
@@ -170,6 +223,7 @@ export default function NotificationDropdown() {
                 <p className="text-sm text-gray-800 font-medium leading-relaxed">{selectedNotif.message}</p>
                 <div className="flex items-center justify-between mt-3 pt-2 border-t border-gray-100">
                   <span className="text-xs text-gray-400">{formatDate(selectedNotif.createdAt)}</span>
+                  {/* Nút đi tới trang chức năng liên quan nếu có ReportId */}
                   {selectedNotif.reportId ? (
                     <button 
                       onClick={(e) => handleViewDetail(e, selectedNotif)}
@@ -185,9 +239,10 @@ export default function NotificationDropdown() {
             </div>
           )}
 
-          {/* List */}
+          {/* DANH SÁCH CÁC THÔNG BÁO */}
           <div className="overflow-y-auto flex-1" style={{ scrollbarWidth: "thin" }}>
             {notifications.length === 0 ? (
+              // Trạng thái trống
               <div className="py-12 text-center flex flex-col items-center justify-center text-gray-400">
                 <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mb-3">
                   <Bell className="w-6 h-6 opacity-30" />
@@ -208,13 +263,13 @@ export default function NotificationDropdown() {
                           : "hover:bg-gray-50"
                     }`}
                   >
-                    {/* Unread indicator */}
+                    {/* Vạch kẻ xanh ở bên trái nếu thông báo chưa đọc */}
                     {!notif.isread && (
                       <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-emerald-500 rounded-r-full" />
                     )}
                     
                     <div className="flex items-start gap-3 p-3 pl-4" onClick={() => handleNotificationClick(notif)}>
-                      {/* Icon */}
+                      {/* Icon minh họa loại thông báo */}
                       <div className={`mt-0.5 w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
                         !notif.isread 
                           ? 'bg-emerald-100 text-emerald-600' 
@@ -223,15 +278,15 @@ export default function NotificationDropdown() {
                         <Info className="w-4 h-4" />
                       </div>
                       
-                      {/* Content */}
+                      {/* Nội dung tóm tắt thông báo */}
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm leading-snug ${!notif.isread ? "font-semibold text-gray-900" : "text-gray-600"}`}>
+                        <p className={`text-sm leading-snug ${!notif.isread ? "font-bold text-gray-900" : "text-gray-600"}`}>
                           {notif.message}
                         </p>
                         <p className="text-xs text-gray-400 mt-1">{timeAgo(notif.createdAt)}</p>
                       </div>
 
-                      {/* Action buttons */}
+                      {/* Nút xóa nhanh hiện ra khi di chuột vào (Hover) */}
                       <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
                           onClick={(e) => handleDelete(e, notif.notificationId)}
@@ -250,6 +305,7 @@ export default function NotificationDropdown() {
         </div>
       )}
 
+      {/* CSS Nhúng cho hoạt ảnh */}
       <style>{`
         @keyframes fadeIn {
           from { opacity: 0; transform: translateY(-4px); }
@@ -257,6 +313,8 @@ export default function NotificationDropdown() {
         }
         .animate-fadeIn { animation: fadeIn 0.2s ease-out; }
       `}</style>
+      
+      {/* Modal xác nhận xóa hết thông báo */}
       <ConfirmModal 
         isOpen={showDeleteAllConfirm}
         onClose={() => setShowDeleteAllConfirm(false)}

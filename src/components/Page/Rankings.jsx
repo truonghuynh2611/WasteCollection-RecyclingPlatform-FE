@@ -1,15 +1,25 @@
+// Nhập các hook từ React
 import { useState, useEffect } from "react";
+// Nhập các icon từ thư viện lucide-react để minh họa thứ hạng và thành tích
 import { Trophy, Medal, Search, TrendingUp, User, MapPin, Award, Star, Crown } from "lucide-react";
+// Nhập hook useAuth để biết thông tin người dùng hiện tại (để làm nổi bật họ trong bảng)
 import { useAuth } from "../../contexts/AuthContext";
+// Nhập hàm gọi API lấy danh sách xếp hạng
 import { getCitizenRankings } from "../../api/ranking";
+// Thư viện framer-motion để tạo các hiệu ứng chuyển động mượt mà
 import { motion } from "framer-motion";
 
+/**
+ * COMPONENT BẢNG XẾP HẠNG (RANKINGS)
+ * Hiển thị các công dân xanh có tích điểm cao nhất hệ thống
+ */
 function Rankings() {
   const { user: currentUser } = useAuth();
-  const [rankings, setRankings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [rankings, setRankings] = useState([]); // Danh sách toàn bộ bảng xếp hạng
+  const [loading, setLoading] = useState(true); // Trạng thái tải dữ liệu
+  const [searchTerm, setSearchTerm] = useState(""); // Từ khóa tìm kiếm công dân
 
+  // Lấy dữ liệu xếp hạng từ server khi component khởi chạy
   useEffect(() => {
     async function fetchRankings() {
       try {
@@ -26,14 +36,17 @@ function Rankings() {
     fetchRankings();
   }, []);
 
+  // Lọc danh sách theo tên hoặc email khi người dùng nhập vào ô tìm kiếm
   const filteredRankings = rankings.filter(r => 
     r.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     r.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Tách 3 người dẫn đầu để hiển thị trên bục vinh quang (Podium)
   const topThree = filteredRankings.slice(0, 3);
   const rest = filteredRankings.slice(3);
 
+  // Hàm phụ trợ lấy Icon tương ứng với thứ hạng (Hạng 1: Vương miện, Hạng 2&3: Huy chương)
   const getRankIcon = (rank) => {
     switch(rank) {
       case 0: return <Crown className="text-yellow-400" size={32} />;
@@ -43,18 +56,9 @@ function Rankings() {
     }
   };
 
-  const getRankColor = (rank) => {
-    switch(rank) {
-      case 0: return "from-yellow-400 to-amber-500 shadow-yellow-200 border-yellow-300";
-      case 1: return "from-gray-300 to-gray-400 shadow-gray-200 border-gray-200";
-      case 2: return "from-amber-600 to-amber-700 shadow-amber-200 border-amber-500";
-      default: return "";
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen">
-      {/* Title & Description */}
+      {/* PHẦN TIÊU ĐỀ VÀ MÔ TẢ (TITLE & DESCRIPTION) */}
       <div className="text-center mb-16">
         <motion.div 
           initial={{ opacity: 0, scale: 0.5 }}
@@ -69,10 +73,11 @@ function Rankings() {
         </p>
       </div>
 
-      {/* Podium for Top 3 */}
+      {/* BỤC VINH QUANG CHO TOP 3 (PODIUM) */}
       {!loading && topThree.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16 items-end max-w-5xl mx-auto">
-          {/* Second Place */}
+          
+          {/* HẠNG NHÌ (SECOND PLACE) */}
           {topThree[1] && (
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
@@ -102,7 +107,7 @@ function Rankings() {
             </motion.div>
           )}
 
-          {/* First Place */}
+          {/* HẠNG NHẤT (FIRST PLACE) - Nằm ở giữa */}
           {topThree[0] && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
@@ -136,7 +141,7 @@ function Rankings() {
             </motion.div>
           )}
 
-          {/* Third Place */}
+          {/* HẠNG BA (THIRD PLACE) */}
           {topThree[2] && (
             <motion.div 
               initial={{ opacity: 0, y: 50 }}
@@ -168,8 +173,9 @@ function Rankings() {
         </div>
       )}
 
-      {/* Main Table */}
+      {/* BẢNG CHI TIẾT THỨ HẠNG (MAIN RANKING TABLE) */}
       <div className="bg-white rounded-[2.5rem] shadow-xl border border-gray-100 overflow-hidden mb-12">
+        {/* Thanh tiêu đề bảng và thanh tìm kiếm */}
         <div className="p-8 border-b border-gray-50 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 bg-emerald-100 rounded-2xl flex items-center justify-center text-emerald-600">
@@ -193,6 +199,7 @@ function Rankings() {
           </div>
         </div>
 
+        {/* Cấu trúc bảng dữ liệu */}
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -205,6 +212,7 @@ function Rankings() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {loading ? (
+                // Hiển thị khung xương (Skeleton) khi đang tải
                 [1,2,3,4,5].map(n => (
                   <tr key={n} className="animate-pulse">
                     <td className="px-8 py-6 h-20 bg-white"></td>
@@ -214,6 +222,7 @@ function Rankings() {
                   </tr>
                 ))
               ) : (
+                // Duyệt qua danh sách đã lọc để hiển thị từng dòng
                 filteredRankings.map((person, index) => {
                   const isCurrentUser = String(person.userId) === String(currentUser?.id);
                   return (
@@ -235,6 +244,7 @@ function Rankings() {
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex items-center gap-4">
+                          {/* Avatar chữ cái đầu của tên */}
                           <div className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-xl uppercase ${
                             isCurrentUser ? "bg-emerald-500 text-white" : "bg-gray-100 text-gray-400"
                           }`}>
@@ -273,8 +283,9 @@ function Rankings() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+      {/* CÁC THẺ THỐNG KÊ PHỤ (STATS CARDS) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        {/* Cộng đồng tham gia */}
         <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-6">
           <div className="w-16 h-16 bg-blue-100 rounded-3xl flex items-center justify-center text-blue-600">
             <User size={32} />
@@ -286,6 +297,7 @@ function Rankings() {
           </div>
         </div>
         
+        {/* Thành tích tích lũy */}
         <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-6">
           <div className="w-16 h-16 bg-emerald-100 rounded-3xl flex items-center justify-center text-emerald-600">
             <Medal size={32} />
@@ -297,6 +309,7 @@ function Rankings() {
           </div>
         </div>
 
+        {/* Quà tặng đã đổi */}
         <div className="bg-white p-8 rounded-[2rem] border border-gray-100 shadow-sm flex items-center gap-6">
           <div className="w-16 h-16 bg-orange-100 rounded-3xl flex items-center justify-center text-orange-600">
             <Award size={32} />

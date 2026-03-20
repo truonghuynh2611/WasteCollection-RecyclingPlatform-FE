@@ -1,7 +1,11 @@
+// Nhập các React hook
 import { useState } from "react";
+// Nhập các icon minh họa từ lucide-react
 import { Search, UserPlus, Eye, Lock, Unlock, ChevronDown, Briefcase, Star } from "lucide-react";
+// Nhập Sidebar dùng chung cho bố cục Manager/Admin
 import Sidebar from "../Layouts/Sidebar";
 
+// DỮ LIỆU MẪU (MOCK DATA) - Danh sách nhân viên thu gom
 const STAFF = [
   { id: 1, name: "Nguyễn Văn An", email: "an.nguyen@ecoconnect.vn", phone: "0901111111", team: "Team Alpha", area: "Khu vực 1A", status: "Hoạt động", completed: 120, rating: 4.9, joined: "01/06/2024" },
   { id: 2, name: "Trần Thị Bích", email: "bich.tran@ecoconnect.vn", phone: "0902222222", team: "Team Beta", area: "Khu vực 1A", status: "Hoạt động", completed: 95, rating: 4.7, joined: "15/07/2024" },
@@ -11,6 +15,10 @@ const STAFF = [
   { id: 6, name: "Vũ Quốc Fang", email: "fang.vu@ecoconnect.vn", phone: "0906666666", team: "Team Zeta", area: "Khu vực 2B", status: "Bị khóa", completed: 22, rating: 3.8, joined: "01/11/2024" },
 ];
 
+/**
+ * COMPONENT HIỂN THỊ ĐÁNH GIÁ SAO (STAR RATING)
+ * @param {number} value - Điểm số đánh giá (từ 0 đến 5)
+ */
 function StarRating({ value }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -22,18 +30,25 @@ function StarRating({ value }) {
   );
 }
 
+/**
+ * COMPONENT QUẢN LÝ NGƯỜI THU GOM (COLLECTOR MANAGEMENT)
+ * Giao diện quản lý danh sách, trạng thái và thông tin chi tiết nhân sự thu gom
+ */
 export default function CollectorManagement() {
-  const [search, setSearch] = useState("");
-  const [filterStatus, setFilterStatus] = useState("Tất cả");
-  const [selectedStaff, setSelectedStaff] = useState(null);
-  const [staff, setStaff] = useState(STAFF);
+  // KHAI BÁO CÁC TRẠNG THÁI (STATE)
+  const [search, setSearch] = useState(""); // Từ khóa tìm kiếm (tên hoặc team)
+  const [filterStatus, setFilterStatus] = useState("Tất cả"); // Lọc theo trạng thái nhân sự
+  const [selectedStaff, setSelectedStaff] = useState(null); // Nhân viên được chọn để xem chi tiết (Modal)
+  const [staff, setStaff] = useState(STAFF); // Danh sách nhân viên đang hiển thị
 
+  // Logic lọc danh sách nhân viên dựa trên ô tìm kiếm và dropdown trạng thái
   const filtered = staff.filter(s => {
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) || s.team.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "Tất cả" || s.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
+  // Hàm thay đổi trạng thái nhân viên (Hoạt động <-> Bị khóa)
   const toggleStatus = (id) => {
     setStaff(prev => prev.map(s => s.id === id
       ? { ...s, status: s.status === "Hoạt động" ? "Bị khóa" : "Hoạt động" }
@@ -41,15 +56,23 @@ export default function CollectorManagement() {
     ));
   };
 
-  const statusStyle = { "Hoạt động": "bg-green-100 text-green-700", "Nghỉ phép": "bg-yellow-100 text-yellow-700", "Bị khóa": "bg-red-100 text-red-600" };
+  // Định nghĩa màu sắc nhãn cho từng trạng thái
+  const statusStyle = { 
+    "Hoạt động": "bg-green-100 text-green-700", 
+    "Nghỉ phép": "bg-yellow-100 text-yellow-700", 
+    "Bị khóa": "bg-red-100 text-red-600" 
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* SIDEBAR BÊN TRÁI */}
       <Sidebar />
+      
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
           <div className="max-w-7xl mx-auto">
-            {/* Header */}
+            
+            {/* TIÊU ĐỀ VÀ NÚT TÁC VỤ ĐẦU TRANG */}
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý người thu gom</h1>
@@ -61,7 +84,7 @@ export default function CollectorManagement() {
               </button>
             </div>
 
-            {/* Stats */}
+            {/* CÁC CHỈ SỐ THỐNG KÊ NHANH (SUMMARY STATS) */}
             <div className="grid grid-cols-4 gap-4 mb-6">
               {[
                 { label: "Tổng người thu gom", value: staff.length, color: "text-gray-800", bg: "bg-white" },
@@ -76,7 +99,7 @@ export default function CollectorManagement() {
               ))}
             </div>
 
-            {/* Filters */}
+            {/* THANH CÔNG CỤ: TÌM KIẾM VÀ LỌC (FILTERS) */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm mb-4 p-4 flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px]">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -104,10 +127,11 @@ export default function CollectorManagement() {
               <p className="text-sm text-gray-500 ml-auto">{filtered.length} người thu gom</p>
             </div>
 
-            {/* Cards */}
+            {/* DANH SÁCH NHÂN VIÊN (DẠNG CARD GRID) */}
             <div className="grid grid-cols-3 gap-4">
               {filtered.map(s => (
                 <div key={s.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
+                  {/* Phần đầu Card: Avatar, Tên và Trạng thái */}
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-indigo-600 flex items-center justify-center text-white font-bold text-lg">
@@ -124,6 +148,7 @@ export default function CollectorManagement() {
                     <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusStyle[s.status]}`}>{s.status}</span>
                   </div>
 
+                  {/* Thông tin chi tiết thu gọn */}
                   <div className="space-y-2 text-sm mb-4">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Khu vực</span>
@@ -139,6 +164,7 @@ export default function CollectorManagement() {
                     </div>
                   </div>
 
+                  {/* Các nút hành động trên Card */}
                   <div className="flex gap-2 pt-3 border-t border-gray-50">
                     <button
                       onClick={() => setSelectedStaff(s)}
@@ -164,7 +190,7 @@ export default function CollectorManagement() {
         </main>
       </div>
 
-      {/* Detail Modal */}
+      {/* MODAL CHI TIẾT NHÂN VIÊN (POPUPSkhi click 'Xem chi tiết') */}
       {selectedStaff && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelectedStaff(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
@@ -177,6 +203,8 @@ export default function CollectorManagement() {
                 <p className="text-sm text-gray-500">{selectedStaff.email}</p>
               </div>
             </div>
+            
+            {/* Hiển thị danh sách các thông tin bổ sung */}
             <div className="space-y-2">
               {[
                 ["Số điện thoại", selectedStaff.phone],
@@ -195,6 +223,7 @@ export default function CollectorManagement() {
                 <StarRating value={selectedStaff.rating} />
               </div>
             </div>
+            
             <button onClick={() => setSelectedStaff(null)} className="mt-5 w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
               Đóng
             </button>

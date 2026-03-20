@@ -1,5 +1,8 @@
+// Nhập các hook từ React
 import { useState } from "react";
+// Nhập hook điều hướng và link từ react-router-dom
 import { useNavigate, Link, Navigate } from "react-router-dom";
+// Nhập các icon trang trí và minh họa trạng thái từ thư viện lucide-react
 import {
   Lock,
   Eye,
@@ -8,22 +11,34 @@ import {
   AlertCircle,
   Mail,
 } from "lucide-react";
+// Nhập context quản lý xác thực và danh sách Role
 import { useAuth, ROLES } from "../../contexts/AuthContext";
+// Nhập hàm gọi API đăng nhập
 import { loginUser } from "../../api/auth";
 
 function Login() {
   const navigate = useNavigate();
+  // Lấy các hàm và biến từ AuthContext
   const { login: setAuthUser, isAuthenticated, user } = useAuth();
 
+  // State lưu trữ thông tin nhập liệu từ form
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
+  // State quản lý ẩn/hiện mật khẩu
   const [showPassword, setShowPassword] = useState(false);
+  // State quản lý trạng thái đang gửi yêu cầu đăng nhập
   const [loading, setLoading] = useState(false);
+  // State lưu thông báo lỗi hiển thị lên giao diện
   const [error, setError] = useState("");
 
+  /**
+   * TỰ ĐỘNG ĐIỀU HƯỚNG NẾU ĐÃ ĐĂNG NHẬP
+   * Nếu người dùng đã vào trang Login mà trạng thái isAuthenticated là true,
+   * hệ thống sẽ tự động đẩy về trang tương ứng với Role của họ.
+   */
   if (isAuthenticated && user) {
     if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
     if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
@@ -31,6 +46,9 @@ function Login() {
     return <Navigate to="/" replace />;
   }
 
+  /**
+   * Cập nhật State khi người dùng gõ phím vào các ô input
+   */
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
@@ -39,15 +57,20 @@ function Login() {
     }));
   };
 
+  /**
+   * Xử lý khi nhấn nút Đăng nhập
+   */
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); // Chặn việc trình duyệt tải lại trang
+    setError(""); // Xóa lỗi cũ
 
+    // Kiểm tra tính hợp lệ cơ bản của dữ liệu
     if (!formData.email.trim() || !formData.password.trim()) {
       setError("Vui lòng điền email và mật khẩu");
       return;
     }
 
+    // Kiểm tra định dạng email bằng Regex
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
       setError("Định dạng email không hợp lệ");
       return;
@@ -55,13 +78,16 @@ function Login() {
 
     setLoading(true);
     try {
+      // Gọi API đăng nhập và nhận về dữ liệu xác thực (token, role, user info)
       const authData = await loginUser(
         formData.email.trim(),
         formData.password.trim(),
       );
 
-      // Điều hướng theo role sau khi đăng nhập (từ authData trả về dựa theo token hoặc role)
-      // Thông thường BE trả về role dạng "Citizen", "Collector", "Admin"
+      /**
+       * PHÂN LUỒNG ĐIỀU HƯỚNG DỰA TRÊN ROLE
+       * Kiểm tra role trả về từ server để quyết định trang chuyển đến.
+       */
       const role = authData.role || authData.user?.role || "Citizen";
       let target = "/";
       if (role === "Admin" || authData.roleId === "r1") {
@@ -71,13 +97,15 @@ function Login() {
       } else if (role === "Manager" || authData.roleId === "r5") {
         target = "/manager";
       } else {
-        target = "/"; // Homepage for Citizen
+        target = "/"; // Trang chủ dành cho Người dân (Citizen)
       }
 
-      // Trả lại toàn bộ authData (gồm cả token và user details)
+      // Lưu thông tin đăng nhập vào Context (và localStorage)
       setAuthUser(authData);
+      // Chuyển hướng người dùng sang trang mục tiêu
       navigate(target, { replace: true });
     } catch (err) {
+      // Hiển thị thông báo lỗi cụ thể từ API
       setError(err?.message || "Đăng nhập thất bại. Vui lòng thử lại");
     } finally {
       setLoading(false);
@@ -86,7 +114,7 @@ function Login() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Section */}
+      {/* PHẦN BÊN TRÁI: Banner hình ảnh và giới thiệu (Ẩn trên mobile) */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 text-white relative overflow-hidden"
         style={{
@@ -96,8 +124,10 @@ function Login() {
           backgroundPosition: "center",
         }}
       >
+        {/* Lớp phủ màu xanh Gradient để làm nổi bật chữ */}
         <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/95 to-emerald-800/85"></div>
 
+        {/* Logo và tên thương hiệu */}
         <div className="relative z-10">
           <div className="flex items-center space-x-2 mb-16">
             <div className="bg-emerald-400 text-emerald-900 p-2 rounded-lg">
@@ -109,6 +139,7 @@ function Login() {
           </div>
         </div>
 
+        {/* Nội dung giới thiệu và thông số thống kê */}
         <div className="relative z-10">
           <h1 className="text-5xl font-bold mb-6 leading-tight">
             Kết nối cộng đồng –
@@ -122,71 +153,41 @@ function Login() {
 
           <div className="grid grid-cols-3 gap-6">
             <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">
-                100+
-              </div>
+              <div className="text-4xl font-bold text-emerald-400 mb-2">100+</div>
               <p className="text-sm text-white/70">Khu vực thu gom</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">
-                50.000+
-              </div>
+              <div className="text-4xl font-bold text-emerald-400 mb-2">50.000+</div>
               <p className="text-sm text-white/70">Người tham gia</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">
-                10.000+
-              </div>
+              <div className="text-4xl font-bold text-emerald-400 mb-2">10.000+</div>
               <p className="text-sm text-white/70">Quà tặng đã trao</p>
             </div>
-          </div>
-
-          <div className="mt-16 flex items-center space-x-4">
-            <div className="flex -space-x-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 border-2 border-white flex items-center justify-center text-sm font-bold text-white">
-                N
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 border-2 border-white flex items-center justify-center text-sm font-bold text-white">
-                T
-              </div>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 border-2 border-white flex items-center justify-center text-sm font-bold text-white">
-                L
-              </div>
-            </div>
-            <p className="text-sm text-white/80">
-              Tham gia ngay cùng cộng đồng xanh
-            </p>
           </div>
         </div>
       </div>
 
-      {/* Right Section */}
+      {/* PHẦN BÊN PHẢI: Form đăng nhập chính */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-8 lg:px-12 py-12 bg-white">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">
-              Đăng nhập hệ thống
-            </h2>
-            <p className="text-gray-600">
-              Dành cho Doanh nghiệp, nhân viên thu gom và người dân
-            </p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-2">Đăng nhập hệ thống</h2>
+            <p className="text-gray-600">Dành cho Doanh nghiệp, nhân viên thu gom và người dân</p>
           </div>
 
-
-
+          {/* Hiển thị vùng báo lỗi nếu có */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3 text-animate-fadeIn">
               <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
+            {/* Trường nhập Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email đăng nhập
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email đăng nhập</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -201,11 +202,9 @@ function Login() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Trường nhập Mật khẩu */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mật khẩu
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -217,31 +216,28 @@ function Login() {
                   className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
                   disabled={loading}
                 />
+                {/* Nút bật/tắt hiển thị mật khẩu */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   disabled={loading}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
             </div>
 
-            {/* Submit Button */}
+            {/* Nút bấm Gửi form */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 bg-emerald-500 text-white font-medium py-3 rounded-lg hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 bg-emerald-500 text-white font-medium py-3 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Đang xử lý..." : "Đăng nhập →"}
             </button>
 
-            {/* Sign Up Link */}
+            {/* Link chuyển hướng sang trang Đăng ký */}
             <p className="text-center text-sm text-gray-600 pt-4">
               Bạn chưa có tài khoản?{" "}
               <Link

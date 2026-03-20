@@ -1,12 +1,20 @@
+// Nhập các hook quản lý trạng thái, hiệu ứng và tham chiếu từ React
 import { useState, useEffect, useRef } from "react";
+// Nhập các thành phần điều hướng từ thư viện React Router
 import { Link, useNavigate, useLocation } from "react-router-dom";
+// Nhập các biểu tượng minh họa từ lucide-react (Máy ảnh, Vị trí, Gửi, Lọc, Tái chế, Thùng rác...)
 import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2 } from "lucide-react";
+// Nhập context xác thực để lấy thông tin công dân và trạng thái đăng nhập
 import { useAuth } from "../../contexts/AuthContext";
+// Nhập các hàm gọi API liên quan đến báo cáo rác (Tạo mới, Lấy danh sách, Xóa)
 import { createWasteReport, getWasteReportsByCitizen, deleteWasteReport } from "../../api/waste";
+// Nhập các hàm gọi API lấy thông tin địa giới hành chính (Quận/Huyện, Khu vực)
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
-import Toast from "../common/Toast";
-import ConfirmModal from "../common/ConfirmModal";
+// Nhập các component dùng chung (Thông báo Toast, Modal xác nhận)
+import { default as Toast } from "../common/Toast";
+import { default as ConfirmModal } from "../common/ConfirmModal";
 
+// Định nghĩa các mốc phân hạng dựa trên số điểm tích lũy
 const RANKS = [
   { name: "Đồng", min: 0 },
   { name: "Bạc", min: 250 },
@@ -14,14 +22,19 @@ const RANKS = [
   { name: "Kim cương", min: 2500 },
 ];
 
+// Các loại rác hỗ trợ phân loại tại nguồn
 const WASTE_TYPES = [
   { id: "Giấy", label: "Giấy", icon: "📄" },
   { id: "Nhựa", label: "Nhựa", icon: "🗑️" },
   { id: "Kim loại", label: "Kim loại", icon: "⚙️" },
 ];
 
+/**
+ * BẢNG ÁNH XẠ TRẠNG THÁI (STATUS MAPPING)
+ * Chuyển đổi mã trạng thái hoặc tên tiếng Anh từ Backend sang tiếng Việt
+ */
 const STATUS_MAP = {
-  // Mapping for integer enum values from Backend (ReportStatus.cs)
+  // Bản đồ cho giá trị enum số từ Backend
   0: "Đang chờ",
   1: "Chấp nhận",
   2: "Đã phân công",
@@ -29,7 +42,7 @@ const STATUS_MAP = {
   4: "Hoàn thành",
   5: "Đã hủy",
   
-  // Mapping for string enum names (PascalCase from Backend)
+  // Bản đồ cho tên enum chuỗi (PascalCase)
   "Pending": "Đang chờ",
   "Accepted": "Chấp nhận",
   "Assigned": "Đã phân công",
@@ -38,6 +51,7 @@ const STATUS_MAP = {
   "Failed": "Đã hủy",
 };
 
+// Định nghĩa màu sắc hiển thị tương ứng với từng trạng thái
 const STATUS_COLORS = {
   "Đang chờ": "bg-yellow-100 text-yellow-800",
   "Chấp nhận": "bg-blue-100 text-blue-800",
@@ -47,6 +61,9 @@ const STATUS_COLORS = {
   "Đã hủy": "bg-red-100 text-red-800",
 };
 
+/**
+ * Hàm tính toán hạng hiện tại dựa trên số điểm
+ */
 function getRankFromPoints(points) {
   let rank = RANKS[0];
   for (let i = RANKS.length - 1; i >= 0; i--) {
@@ -58,6 +75,9 @@ function getRankFromPoints(points) {
   return rank;
 }
 
+/**
+ * Hàm tính toán tiến trình nâng hạng (phần trăm và số điểm còn thiếu)
+ */
 function getRankProgress(userPoints) {
   const currentRank = getRankFromPoints(userPoints);
   const nextRank = RANKS[RANKS.indexOf(currentRank) + 1];
@@ -74,10 +94,12 @@ function getRankProgress(userPoints) {
   };
 }
 
+// Hàm định dạng ngày tháng theo chuẩn Việt Nam
 function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString("vi-VN");
 }
 
+// Hàm định dạng giờ phút theo chuẩn Việt Nam
 function formatTime(dateString) {
   return new Date(dateString).toLocaleTimeString("vi-VN", {
     hour: "2-digit",
@@ -85,13 +107,68 @@ function formatTime(dateString) {
   });
 }
 
+/**
+ * COMPONENT BÁO CÁO RÁC THẢI (REPORT WASTE)
+ * Chức năng chính: 
+ * 1. Cho phép công dân gửi báo cáo rác thải kèm hình ảnh, vị trí, chủng loại.
+ * 2. Hiển thị thông tin tích điểm, thứ hạng của người dùng.
+ * 3. Hiển thị lịch sử các báo cáo đã gửi và trạng thái xử lý.
+ */
 function ReportWaste() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth(); // Lấy thông tin xác thực từ context
   const navigate = useNavigate();
-  const [reports, setReports] = useState([]);
-  const [loading, setLoading] = useState(true);
   const routerLocation = useLocation();
 
+  // TRẠNG THÁI DỮ LIỆU (DATA STATES)
+  const [reports, setReports] = useState([]); // Danh sách lịch sử báo cáo
+  const [loading, setLoading] = useState(true); // Trạng thái đang tải dữ liệu ban đầu
+  const [submitting, setSubmitting] = useState(false); // Trạng thái đang gửi báo cáo mới
+  
+  // TRẠNG THÁI FORM BÁO CÁO (FORM STATES)
+  const [selectedWasteTypes, setSelectedWasteTypes] = useState(["Nhựa"]); // Loại rác được chọn
+  const [districts, setDistricts] = useState([]); // Danh sách các quận/huyện
+  const [areas, setAreas] = useState([]); // Danh sách các khu vực thuộc quận/huyện được chọn
+  const [selectedDistrictId, setSelectedDistrictId] = useState(user?.districtId || ""); // Quận/Huyện đang chọn
+  const [selectedAreaId, setSelectedAreaId] = useState(user?.areaId || ""); // Khu vực đang chọn
+  const [coords, setCoords] = useState(null); // Tọa độ (Vĩ độ, Kinh độ)
+  const [description, setDescription] = useState(""); // Ghi chú thêm
+  const [imageFile, setImageFile] = useState(null); // Tệp tin hình ảnh đã chọn
+  const [imagePreview, setImagePreview] = useState(null); // Đường dẫn ảnh để hiển thị xem trước (preview)
+  
+  // TRẠNG THÁI PHẢN HỒI UI (UI STATES)
+  const [toast, setToast] = useState(null); // Thông báo nhanh (Toast)
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, reportId: null }); // Xác nhận xóa báo cáo
+
+  /**
+   * Hiển thị thông báo Toast trong thời gian ngắn
+   */
+  const showToast = (message, type = "success") => {
+    setToast({ message, type });
+  };
+
+  // Tính toán các thông tin liên quan đến hạng và điểm của người dùng
+  const userPoints = user?.totalPoints ?? 0;
+  const userRank = getRankFromPoints(userPoints).name;
+  const { progress, needed, nextRank } = getRankProgress(userPoints);
+
+  /**
+   * Xử lý khi người dùng chọn file ảnh từ thiết bị
+   */
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result); // Tạo preview Base64 để hiển thị lên UI ngay lập tức
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  /**
+   * Hiệu ứng: Cuộn đến báo cáo cụ thể nếu có reportId trên URL (Deep Linking)
+   */
   useEffect(() => {
     const params = new URLSearchParams(routerLocation.search);
     const reportId = params.get("reportId");
@@ -108,42 +185,10 @@ function ReportWaste() {
       }, 500);
     }
   }, [routerLocation.search, reports]);
-  const [submitting, setSubmitting] = useState(false);
-  const [selectedWasteTypes, setSelectedWasteTypes] = useState(["Nhựa"]);
-  
-  // Address states initialized from user profile if available
-  const [districts, setDistricts] = useState([]);
-  const [areas, setAreas] = useState([]);
-  const [selectedDistrictId, setSelectedDistrictId] = useState(user?.districtId || "");
-  const [selectedAreaId, setSelectedAreaId] = useState(user?.areaId || "");
-  const [coords, setCoords] = useState(null); // { lat, lon }
-  const [location, setLocation] = useState(""); // Still used for internal ref or fallback
-  const [description, setDescription] = useState("");
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [toast, setToast] = useState(null);
-  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, reportId: null });
 
-  const showToast = (message, type = "success") => {
-    setToast({ message, type });
-  };
-
-  const userPoints = user?.totalPoints ?? 0;
-  const userRank = getRankFromPoints(userPoints).name;
-  const { progress, needed, nextRank } = getRankProgress(userPoints);
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
+  /**
+   * Hiệu ứng: Lấy danh sách lịch sử báo cáo khi trang được tải hoặc khi đăng nhập
+   */
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/login", { replace: true });
@@ -154,7 +199,7 @@ function ReportWaste() {
       try {
         const data = await getWasteReportsByCitizen(user?.id);
         if (!cancelled && Array.isArray(data)) {
-          setReports(data);
+          setReports(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))); // Sắp xếp mới nhất lên đầu
         }
       } catch {
         if (!cancelled) setReports([]);
@@ -166,14 +211,15 @@ function ReportWaste() {
     return () => { cancelled = true; };
   }, [isAuthenticated, user?.id, navigate]);
 
-  // Fetch districts on mount
+  /**
+   * Hiệu ứng: Lấy danh sách Quận/Huyện khi component khởi chạy
+   */
   useEffect(() => {
     async function fetchDistricts() {
       try {
         const res = await getAllDistricts();
         if (res.success) {
           setDistricts(res.data);
-          if (res.data.length === 0) console.warn("API returned empty districts list");
         } else {
           console.error("API error fetching districts:", res.message);
         }
@@ -184,7 +230,9 @@ function ReportWaste() {
     fetchDistricts();
   }, []);
 
-  // Fetch areas when district changes
+  /**
+   * Hiệu ứng: Lấy danh sách Khu vực khi Quận/Huyện thay đổi
+   */
   useEffect(() => {
     if (!selectedDistrictId) {
       setAreas([]);
@@ -195,10 +243,10 @@ function ReportWaste() {
       try {
         const res = await getDistrictDetails(selectedDistrictId);
         if (res.success) {
-          setAreas(res.data.areas || []);
-          // Only clear areaId if the current selectedAreaId is not found in the new area list
-          // This prevents clearing the pre-filled value from the user profile on initial load.
-          const areaExists = res.data.areas?.some(a => String(a.areaId) === String(selectedAreaId));
+          const fetchedAreas = res.data.areas || [];
+          setAreas(fetchedAreas);
+          // Kiểm tra xem khu vực hiện tại có còn nằm trong danh sách khu vực của quận mới không
+          const areaExists = fetchedAreas.some(a => String(a.areaId) === String(selectedAreaId));
           if (!areaExists) {
             setSelectedAreaId("");
           }
@@ -210,17 +258,17 @@ function ReportWaste() {
     fetchAreas();
   }, [selectedDistrictId]);
 
+  /**
+   * HÀM XỬ LÝ GỬI BÁO CÁO (SUBMIT)
+   */
   const handleSubmit = async () => {
-    // Ưu tiên dùng citizenId nếu có (từ BE), rồi mới đến id/userId
-    const rawId = user?.citizenId || user?.id || user?.userId || user?.UserId;
+    // Ưu tiên dùng citizenId từ Profile, sau đó mới dùng ID thô từ Auth
+    const rawId = user?.citizenId || user?.id || user?.userId;
     const finalId = rawId ? Number(rawId) : undefined;
     
-    // Debug log
-    console.log("Submitting report with ID:", finalId, "from user object:", user);
-
+    // Kiểm tra tính hợp lệ của dữ liệu trước khi gửi
     if (!finalId || isNaN(finalId)) {
-      console.error("DEBUG: Không tìm thấy ID hợp lệ trong đối tượng user:", user);
-      showToast("Lỗi: Không tìm thấy ID người dùng hợp lệ. Vui lòng đăng xuất và đăng nhập lại.", "error");
+      showToast("Lỗi: Không tìm thấy ID người dùng hợp lệ. Vui lòng đăng nhập lại.", "error");
       return;
     }
     if (!selectedDistrictId) {
@@ -238,8 +286,8 @@ function ReportWaste() {
     
     setSubmitting(true);
     try {
+      // Sử dụng FormData để gửi đồng thời cả văn bản và tệp tin ảnh
       const formData = new FormData();
-      // Đảm bảo gửi ID đúng (ưu tiên CitizenId thực sự từ BE)
       formData.append("CitizenId", finalId);
       formData.append("AreaId", selectedAreaId);
       formData.append("WasteType", selectedWasteTypes.join(", "));
@@ -252,89 +300,83 @@ function ReportWaste() {
       }
 
       const result = await createWasteReport(formData);
-      console.log("Submit success:", result);
-      
       showToast("Báo cáo của bạn đã được gửi thành công!", "success");
 
-      // Reset form
+      // Reset form sau khi gửi thành công về trạng thái ban đầu
       setDescription("");
       setImageFile(null);
       setImagePreview(null);
       setCoords(null);
       
-      // Refresh list
+      // Tải lại danh sách lịch sử để cập nhật báo cáo mới nhất
       const data = await getWasteReportsByCitizen(finalId);
-      setReports(data);
+      setReports(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch (err) {
       console.error("Submit error:", err);
-      // Hiển thị chi tiết lỗi nếu có
-      const errorMsg = err.response?.data?.message || err.response?.data || err.message || "Lỗi không xác định";
-      showToast("Gửi báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng kiểm tra lại thông tin."), "error");
+      const errorMsg = err.response?.data?.message || err.message || "Lỗi không xác định";
+      showToast("Gửi báo cáo thất bại: " + errorMsg, "error");
     } finally {
       setSubmitting(false);
     }
   };
 
+  /**
+   * HÀM XỬ LÝ XÓA BÁO CÁO
+   */
   const handleDelete = (reportId) => {
     setDeleteConfirm({ isOpen: true, reportId });
   };
 
+  /**
+   * Thực thi hành động xóa báo cáo sau khi đã xác nhận qua Modal
+   */
   const executeDelete = async () => {
     const { reportId } = deleteConfirm;
     if (!reportId) return;
 
     try {
       await deleteWasteReport(reportId);
-      // Refresh list dùng ID Citizen
-      const rawId = user?.citizenId || user?.id || user?.userId || user?.UserId;
+      // Tải lại danh sách lịch sử
+      const rawId = user?.citizenId || user?.id || user?.userId;
       if (rawId) {
         const data = await getWasteReportsByCitizen(Number(rawId));
-        setReports(data);
+        setReports(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
       }
       showToast("Đã xóa báo cáo thành công.", "success");
     } catch (err) {
       console.error("Delete error:", err);
-      const errorMsg = err.response?.data?.message || err.response?.data || err.message || "Lỗi không xác định";
-      showToast("Xóa báo cáo thất bại: " + (typeof errorMsg === 'string' ? errorMsg : "Vui lòng thử lại sau."), "error");
+      showToast("Xóa báo cáo thất bại. Vui lòng thử lại sau.", "error");
     } finally {
-      setDeleteConfirm({ isOpen: false, reportId: null }); // Close modal after attempt
+      setDeleteConfirm({ isOpen: false, reportId: null });
     }
   };
 
-  const displayStatus = (status) =>
-    STATUS_MAP[status] || status;
-  const statusColor = (status) =>
-    STATUS_COLORS[displayStatus(status)] || "bg-gray-100 text-gray-800";
+  // Các hàm hỗ trợ hiển thị logic UI
+  const displayStatus = (status) => STATUS_MAP[status] || status;
+  const statusColor = (status) => STATUS_COLORS[displayStatus(status)] || "bg-gray-100 text-gray-800";
+  
+  /**
+   * Tính toán điểm thưởng hiển thị cho từng báo cáo trog danh sách
+   */
   const pointsDisplay = (report) => {
     const s = displayStatus(report.status);
     if (s === "Hoàn thành") {
-      // Sum points from pointHistories if available (linked since the recent fix)
+      // Nếu có lịch sử điểm đi kèm thì cộng tổng, nếu không thì hiện mặc định +10
       if (report.pointHistories && report.pointHistories.length > 0) {
         const total = report.pointHistories.reduce((sum, ph) => sum + (ph.pointAmount || 0), 0);
         return total > 0 ? `+${total}` : total;
       }
-      return "+10"; // Fallback for old records or if history is not yet linked
+      return "+10";
     }
-    if (s === "Đã hủy") {
-      if (report.pointHistories && report.pointHistories.length > 0) {
-        const total = report.pointHistories.reduce((sum, ph) => sum + (ph.pointAmount || 0), 0);
-        return total;
-      }
-      return "0";
-    }
-    return "—";
-  };
-
-
-  const handleSelectAddress = () => {
-    // Placeholder for map selection logic
-    console.log("Mở bản đồ chọn địa chỉ...");
+    if (s === "Đã hủy") return "0";
+    return "—"; // Các trạng thái đang xử lý chưa có điểm
   };
 
   if (!isAuthenticated) return null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Modal xác nhận xóa để tránh người dùng nhấn nhầm */}
       <ConfirmModal 
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false, reportId: null })}
@@ -343,8 +385,10 @@ function ReportWaste() {
         message="Bạn có chắc chắn muốn xóa báo cáo này? Thao tác này không thể hoàn tác."
         confirmText="Xác nhận xóa"
       />
+      {/* Thông báo dạng Toast góc màn hình */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-      {/* Welcome */}
+      
+      {/* PHẦN CHÀO MỪNG (WELCOME) */}
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">
           Xin chào, <span className="text-emerald-600">{user?.fullName}</span>
@@ -355,7 +399,8 @@ function ReportWaste() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Form báo cáo */}
+        
+        {/* CỘT TRÁI: FORM BÁO CÁO (REPORT FORM) */}
         <div className="lg:col-span-1 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center space-x-3 mb-6">
@@ -366,6 +411,7 @@ function ReportWaste() {
             </div>
 
             <div className="space-y-4">
+              {/* PHẦN TẢI HÌNH ẢNH */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Hình ảnh hiện trường (tùy chọn)
@@ -397,8 +443,8 @@ function ReportWaste() {
                 </label>
               </div>
 
+              {/* PHẦN CHỌN ĐỊA ĐIỂM (QUẬN & KHU VỰC) */}
               <div className="space-y-4">
-
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Quận/Huyện <span className="text-red-500">*</span>
@@ -435,9 +481,9 @@ function ReportWaste() {
                     ))}
                   </select>
                 </div>
-
               </div>
 
+              {/* PHẦN CHỌN LOẠI RÁC */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-3">
                   Phân loại rác tại nguồn
@@ -451,6 +497,7 @@ function ReportWaste() {
                         type="button"
                         onClick={() => {
                           if (isSelected) {
+                            // Không cho phép bỏ chọn nếu chỉ còn 1 loại
                             if (selectedWasteTypes.length > 1) {
                               setSelectedWasteTypes(selectedWasteTypes.filter(t => t !== type.id));
                             }
@@ -478,6 +525,7 @@ function ReportWaste() {
                 </div>
               </div>
 
+              {/* PHẦN NHẬP MÔ TẢ */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Mô tả thêm (không bắt buộc)
@@ -491,6 +539,7 @@ function ReportWaste() {
                 />
               </div>
 
+              {/* NÚT GỬI BÁO CÁO */}
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -508,8 +557,10 @@ function ReportWaste() {
           </div>
         </div>
 
-        {/* Điểm thưởng + Lịch sử */}
+        {/* CỘT PHẢI: ĐIỂM THƯỞNG VÀ LỊCH SỬ (STATS & HISTORY) */}
         <div className="lg:col-span-2 space-y-6">
+          
+          {/* THẺ ĐIỂM THƯỞNG (REWARDS CARD) */}
           <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl shadow-lg p-6 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -533,6 +584,7 @@ function ReportWaste() {
                 Đổi quà
               </Link>
             </div>
+            {/* Thanh tiến trình nâng hạng */}
             <div className="w-full bg-emerald-400 rounded-full h-2">
               <div
                 className="bg-white rounded-full h-2 transition-all duration-500"
@@ -541,6 +593,7 @@ function ReportWaste() {
             </div>
           </div>
 
+          {/* DANH SÁCH LỊCH SỬ BÁO CÁO (REPORT HISTORY) */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-900">Lịch sử báo cáo</h3>
@@ -551,6 +604,7 @@ function ReportWaste() {
             </div>
 
             <div className="space-y-4">
+              {/* Tiêu đề bảng lịch sử */}
               <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-500 pb-2 border-b">
                 <div>THỜI GIAN</div>
                 <div>LOẠI RÁC</div>
@@ -561,6 +615,7 @@ function ReportWaste() {
               {loading ? (
                 <div className="text-center py-12 text-gray-500">Đang tải...</div>
               ) : reports.length === 0 ? (
+                // Hiển thị khi chưa có dữ liệu báo cáo nào
                 <div className="text-center py-12">
                   <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Recycle className="text-gray-400" size={32} />
@@ -571,6 +626,7 @@ function ReportWaste() {
                   </p>
                 </div>
               ) : (
+                // Hiển thị danh sách các báo cáo
                 reports.map((report) => (
                   <div
                     key={report.reportId}
@@ -603,6 +659,7 @@ function ReportWaste() {
                       <span className="text-emerald-600 font-semibold">
                         {pointsDisplay(report)}
                       </span>
+                      {/* Chỉ cho phép xóa nếu báo cáo đang ở trạng thái 'Đang chờ' (Pending) */}
                       {(report.status === 0 || report.status === "Pending" || report.status === "pending") && (
                         <button
                           onClick={() => handleDelete(report.reportId)}
@@ -619,6 +676,7 @@ function ReportWaste() {
             </div>
           </div>
 
+          {/* MẸO VÈ TÍCH ĐIỂM (TIPS SECTION) */}
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
             <div className="flex items-start space-x-3">
               <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">

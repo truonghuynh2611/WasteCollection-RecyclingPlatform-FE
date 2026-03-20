@@ -1,28 +1,41 @@
+// Nhập các React hook cần thiết (useState: quản lý trạng thái, useEffect: hiệu ứng phụ, useRef: tham chiếu DOM)
 import { useState, useEffect, useRef } from "react";
+// Nhập các icon từ thư viện lucide-react để làm đẹp giao diện trang quản lý
 import {
   Ticket, Plus, Search, Eye, X, Edit, Trash2, 
   AlertCircle, CheckCircle2, MoreVertical, RefreshCw,
   Image as ImageIcon, Tag, Clock, AlignLeft, Hash, Upload, Loader2
 } from "lucide-react";
+// Nhập Sidebar dùng chung cho bố cục Admin
 import Sidebar from "../Layouts/Sidebar";
+// Nhập các hàm gọi API liên quan đến quản lý Voucher từ thư mục api
 import { getVouchers, createVoucher, updateVoucher, deleteVoucher, uploadVoucherImage } from "../../api/voucher";
+// Nhập component Modal xác nhận dùng chung
 import ConfirmModal from "../common/ConfirmModal";
 
+// Cấu hình URL cơ sở cho API và hàm xử lý đường dẫn ảnh (đảm bảo hiển thị đúng ảnh từ server)
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api$/, "");
 const getImageUrl = (path) => path ? (path.startsWith("http") ? path : `${API_BASE}${path}`) : null;
 
+// Danh sách các loại danh mục Voucher mẫu
 const CATEGORIES = ["Ẩm thực", "Di chuyển", "Mua sắm", "Tiện ích", "Giải trí", "Khác"];
 
+/**
+ * COMPONENT TRANG QUẢN LÝ VOUCHER (VOUCHER MANAGEMENT)
+ * Chức năng: Xem danh sách, thêm mới, chỉnh sửa, xóa và tải ảnh cho Voucher
+ */
 export default function VoucherManagement() {
-  const [vouchers, setVouchers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState("add"); // "add" or "edit"
-  const [currentVoucher, setCurrentVoucher] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  // CÁC TRẠNG THÁI (STATE) QUẢN LÝ DỮ LIỆU VÀ GIAO DIỆN
+  const [vouchers, setVouchers] = useState([]); // Danh sách voucher từ backend
+  const [loading, setLoading] = useState(true); // Trạng thái đang tải dữ liệu
+  const [search, setSearch] = useState(""); // Từ khóa tìm kiếm
+  const [showModal, setShowModal] = useState(false); // Trạng thái đóng/mở Modal Thêm/Sửa
+  const [modalMode, setModalMode] = useState("add"); // Chế độ Modal: "add" (Thêm) hoặc "edit" (Sửa)
+  const [currentVoucher, setCurrentVoucher] = useState(null); // Voucher đang được chọn để sửa
+  const [isUploading, setIsUploading] = useState(false); // Trạng thái đang tải ảnh lên server
+  const fileInputRef = useRef(null); // Tham chiếu tới ô input file ẩn
 
+  // Trạng thái dữ liệu trong Form
   const [formData, setFormData] = useState({
     voucherName: "",
     description: "",
@@ -35,14 +48,16 @@ export default function VoucherManagement() {
     status: true
   });
 
-  // For deletion
+  // Trạng thái phục vụ việc Xóa Voucher
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [voucherToDelete, setVoucherToDelete] = useState(null);
 
+  // Gọi API lấy danh sách ngay khi component được render lần đầu
   useEffect(() => {
     fetchVouchers();
   }, []);
 
+  // Hàm gọi API lấy toàn bộ danh sách Voucher
   const fetchVouchers = async () => {
     setLoading(true);
     const result = await getVouchers();
@@ -52,6 +67,7 @@ export default function VoucherManagement() {
     setLoading(false);
   };
 
+  // Hàm chuẩn bị dữ liệu khi click nút "Thêm mới"
   const handleOpenAdd = () => {
     setModalMode("add");
     setFormData({
@@ -68,6 +84,7 @@ export default function VoucherManagement() {
     setShowModal(true);
   };
 
+  // Hàm chuẩn bị dữ liệu khi click nút "Chỉnh sửa" (đưa thông tin cũ vào form)
   const handleOpenEdit = (voucher) => {
     setModalMode("edit");
     setCurrentVoucher(voucher);
@@ -85,6 +102,7 @@ export default function VoucherManagement() {
     setShowModal(true);
   };
 
+  // Hàm xử lý việc tải ảnh lên server
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -93,6 +111,7 @@ export default function VoucherManagement() {
     try {
       const result = await uploadVoucherImage(file);
       if (result.success) {
+        // Cập nhật đường dẫn ảnh mới trả về từ server vào form
         setFormData(prev => ({ ...prev, image: result.imageUrl }));
       }
     } catch (err) {
@@ -103,28 +122,31 @@ export default function VoucherManagement() {
     }
   };
 
+  // Hàm xử lý khi nhấn nút Lưu (Gửi dữ liệu lên backend)
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (modalMode === "add") {
       const result = await createVoucher(formData);
       if (result.success) {
         setShowModal(false);
-        fetchVouchers();
+        fetchVouchers(); // Làm mới danh sách sau khi thêm
       }
     } else {
       const result = await updateVoucher(currentVoucher.voucherId, formData);
       if (result.success) {
         setShowModal(false);
-        fetchVouchers();
+        fetchVouchers(); // Làm mới danh sách sau khi sửa
       }
     }
   };
 
+  // Hàm xử lý khi nhấn nút Xóa (mở Modal xác nhận)
   const handleDeleteClick = (voucher) => {
     setVoucherToDelete(voucher);
     setShowDeleteConfirm(true);
   };
 
+  // Hàm thực thi việc xóa Voucher sau khi đã xác nhận
   const executeDelete = async () => {
     if (voucherToDelete) {
       const result = await deleteVoucher(voucherToDelete.voucherId);
@@ -134,6 +156,7 @@ export default function VoucherManagement() {
     }
   };
 
+  // Lọc danh sách Voucher hiển thị dựa trên ô tìm kiếm (theo tên hoặc danh mục)
   const filtered = vouchers.filter(v =>
     v.voucherName.toLowerCase().includes(search.toLowerCase()) ||
     (v.category && v.category.toLowerCase().includes(search.toLowerCase()))
@@ -141,12 +164,13 @@ export default function VoucherManagement() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar bên trái */}
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
           <div className="max-w-6xl mx-auto">
             
-            {/* Header */}
+            {/* PHẦN TIÊU ĐỀ (HEADER) */}
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý Voucher</h1>
@@ -161,7 +185,7 @@ export default function VoucherManagement() {
               </button>
             </div>
 
-            {/* Stats */}
+            {/* THẺ THỐNG KÊ NHANH (STATS) */}
             <div className="grid grid-cols-3 gap-6 mb-8">
               {[
                 { label: "Tổng số Voucher", value: vouchers.length, icon: Ticket, color: "text-blue-600", bg: "bg-blue-50" },
@@ -180,7 +204,7 @@ export default function VoucherManagement() {
               ))}
             </div>
 
-            {/* Search and Filters */}
+            {/* THANH TÌM KIẾM VÀ LÀM MỚI (SEARCH & FILTERS) */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-6 flex items-center gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -200,7 +224,7 @@ export default function VoucherManagement() {
               </button>
             </div>
 
-            {/* Table */}
+            {/* BẢNG DỮ LIỆU VOUCHER (TABLE) */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -224,6 +248,7 @@ export default function VoucherManagement() {
                       <tr key={voucher.voucherId} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-4">
+                            {/* Hiển thị ảnh Voucher hoặc icon mặc định */}
                             <div className="w-12 h-12 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center text-green-600 shrink-0 border border-gray-200">
                               {voucher.image ? (
                                 <img src={getImageUrl(voucher.image)} alt={voucher.voucherName} className="w-full h-full object-cover" />
@@ -292,10 +317,11 @@ export default function VoucherManagement() {
         </main>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* MODAL THÊM / SỬA VOUCHER */}
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-slideUp" onClick={e => e.stopPropagation()}>
+            {/* Header Modal */}
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50">
               <div className="flex items-center gap-3">
                 <h3 className="text-lg font-bold text-gray-800">
@@ -310,7 +336,7 @@ export default function VoucherManagement() {
             
             <form onSubmit={handleSubmit} className="p-6">
               <div className="grid grid-cols-2 gap-6">
-                {/* Left Column */}
+                {/* CỘT TRÁI (LEFT COLUMN): Thông tin cơ bản */}
                 <div className="space-y-4">
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
@@ -381,7 +407,7 @@ export default function VoucherManagement() {
                   </div>
                 </div>
 
-                {/* Right Column */}
+                {/* CỘT PHẢI (RIGHT COLUMN): Hình ảnh và mô tả */}
                 <div className="space-y-4">
                   <div>
                     <label className="flex items-center gap-2 text-sm font-semibold text-gray-700 mb-1.5">
@@ -454,6 +480,7 @@ export default function VoucherManagement() {
                 </div>
               </div>
 
+              {/* PHẦN ĐIỀU KHIỂN DƯỚI CÙNG (FOOTER ACTIONS) */}
               <div className="flex items-center gap-3 py-4 border-t border-gray-100 mt-6">
                 <div 
                   onClick={() => setFormData({...formData, status: !formData.status})}
@@ -487,7 +514,7 @@ export default function VoucherManagement() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* MODAL XÁC NHẬN XÓA (CONFIRM DELETE) */}
       <ConfirmModal
         isOpen={showDeleteConfirm}
         onClose={() => setShowDeleteConfirm(false)}

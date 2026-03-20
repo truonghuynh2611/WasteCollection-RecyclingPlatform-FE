@@ -1,3 +1,4 @@
+// Nhập các icon từ thư viện lucide-react để minh họa các phần của trang chủ
 import {
   Camera,
   FileText,
@@ -7,18 +8,31 @@ import {
   Truck,
   Gift,
 } from "lucide-react";
+// Nhập các thành phần điều hướng từ react-router-dom
 import { Link, Navigate } from "react-router-dom";
+// Nhập thông tin xác thực và định nghĩa các quyền (roles) từ AuthContext
 import { useAuth, ROLES } from "../../contexts/AuthContext";
 
+/**
+ * COMPONENT TRANG CHỦ (HOMEPAGE)
+ * Trang giới thiệu dịch vụ dành cho người dùng vãng lai và điều hướng tự động cho người dùng đã đăng nhập
+ */
 function Homepage() {
+  // Lấy trạng thái đăng nhập và thông tin người dùng từ context
   const { isAuthenticated, user } = useAuth();
 
+  // LOGIC ĐIỀU HƯỚNG TỰ ĐỘNG (AUTO-REDIRECTION)
+  // Nếu người dùng đã đăng nhập, chuyển hướng họ về trang Dashboard tương ứng với vai trò của họ
   if (isAuthenticated && user) {
+    // Admin (r1) -> Trang quản trị nội bộ
     if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
+    // Người thu gom (r2) -> Trang dành cho nhân viên thu gom
     if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
+    // Quản lý khu vực (r5) -> Trang quản lý khu vực đơn lẻ
     if (user.role === ROLES.AREA_MANAGER || user.role === "r5") return <Navigate to="/manager" replace />;
   }
 
+  // DỮ LIỆU THỐNG KÊ (STATS DATA) - Hiển thị thành tích của nền tảng
   const stats = [
     {
       icon: FileText,
@@ -46,6 +60,7 @@ function Homepage() {
     },
   ];
 
+  // CÁC BƯỚC QUY TRÌNH (PROCESS STEPS) - Hướng dẫn 3 bước cơ bản
   const steps = [
     {
       number: 1,
@@ -72,8 +87,9 @@ function Homepage() {
 
   return (
     <>
-      {/* Hero Section */}
+      {/* PHẦN GIỚI THIỆU CHÍNH (HERO SECTION) */}
       <section className="relative h-[500px] flex items-center justify-center text-center">
+        {/* Hình nền mờ phía sau */}
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
@@ -84,6 +100,7 @@ function Homepage() {
           <div className="absolute inset-0 bg-black/40"></div>
         </div>
 
+        {/* Nội dung chữ và nút kêu gọi hành động */}
         <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4">
             Giải pháp thông minh cho
@@ -104,7 +121,7 @@ function Homepage() {
         </div>
       </section>
 
-      {/* Stats Section */}
+      {/* PHẦN THỐNG KÊ (STATS SECTION) */}
       <section className="py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -119,6 +136,7 @@ function Homepage() {
                       {stat.label}
                     </p>
                     <div className="flex items-baseline space-x-2">
+                       {/* Hiển thị con số lớn đại diện cho thành tích */}
                       <span className="text-3xl font-bold text-gray-900">
                         {stat.value}
                       </span>
@@ -138,7 +156,7 @@ function Homepage() {
         </div>
       </section>
 
-      {/* Process Section */}
+      {/* PHẦN QUY TRÌNH LÀM VIỆC (PROCESS SECTION) */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12">
@@ -156,6 +174,7 @@ function Homepage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Duyệt qua mảng steps để hiển thị từng bước */}
             {steps.map((step) => (
               <div
                 key={step.number}

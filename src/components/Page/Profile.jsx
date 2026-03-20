@@ -1,21 +1,33 @@
+// Nhập React và các hook cần thiết (useEffect để gọi API, useState để quản lý dữ liệu, useRef để trỏ tới file input)
 import React, { useEffect, useState, useRef } from "react";
+// Nhập hook useAuth để lấy thông tin người dùng đang đăng nhập
 import { useAuth } from "../../contexts/AuthContext";
+// Nhập các icon từ lucide-react để trang trí giao diện
 import { 
   User, Mail, Phone, Shield, Award, History, 
   ArrowRight, Edit2, Save, X, MapPin, Camera
 } from "lucide-react";
+// Nhập các hàm gọi API liên quan đến lịch sử điểm và địa chính
 import { getMyPointHistory } from "../../api/point";
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
 
+/**
+ * COMPONENT TRANG CÁ NHÂN (PROFILE)
+ * Hiển thị và cho phép người dùng cập nhật thông tin cá nhân, xem lịch sử tích điểm
+ */
 const Profile = () => {
+  // Lấy dữ liệu user và hàm cập nhập từ AuthContext
   const { user, updateUser } = useAuth();
+  // Tham chiếu tới ô input file ẩn để đổi ảnh đại diện
   const fileInputRef = useRef(null);
-  const [pointHistory, setPointHistory] = useState([]);
-  const [totalPoints, setTotalPoints] = useState(0);
-  const [loading, setLoading] = useState(true);
   
-  // Edit logic states
-  const [isEditing, setIsEditing] = useState(false);
+  // CÁC TRẠNG THÁI (STATE)
+  const [pointHistory, setPointHistory] = useState([]); // Danh sách lịch sử điểm
+  const [totalPoints, setTotalPoints] = useState(0); // Tổng điểm tích lũy tính từ lịch sử
+  const [loading, setLoading] = useState(true); // Trạng thái đang tải lịch sử điểm
+  
+  // Trạng thái phục vụ việc chỉnh sửa (Edit Mode)
+  const [isEditing, setIsEditing] = useState(false); // Đang ở chế độ sửa hay xem?
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -26,12 +38,13 @@ const Profile = () => {
     avatar: ""
   });
   
-  // Address metadata states
+  // Dữ liệu bổ trợ cho địa chỉ (Quận/Huyện, Phường/Xã)
   const [districts, setDistricts] = useState([]);
   const [areas, setAreas] = useState([]);
-  const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
+  const [saving, setSaving] = useState(false); // Trạng thái đang lưu thông tin lên server
+  const [message, setMessage] = useState({ type: "", text: "" }); // Thông báo thành công/thất bại
 
+  // Cập nhật formData mỗi khi dữ liệu user từ context thay đổi
   useEffect(() => {
     if (user) {
       setFormData({
@@ -46,12 +59,14 @@ const Profile = () => {
     }
   }, [user]);
 
+  // Lấy lịch sử tích điểm của người dùng hiện tại
   useEffect(() => {
     const fetchPoints = async () => {
       if (user?.id) {
         try {
           const history = await getMyPointHistory(user.id);
           setPointHistory(history);
+          // Tính tổng điểm từ mảng lịch sử (nếu cần hiển thị local)
           const total = history.reduce((sum, item) => sum + (item.points || 0), 0);
           setTotalPoints(total);
         } catch (error) {
@@ -64,6 +79,7 @@ const Profile = () => {
     fetchPoints();
   }, [user?.id]);
 
+  // Lấy danh sách Quận/Huyện khi trang web khởi tải
   useEffect(() => {
     const fetchDistricts = async () => {
       try {
@@ -76,6 +92,7 @@ const Profile = () => {
     fetchDistricts();
   }, []);
 
+  // Lấy danh sách Phường/Xã dựa trên Quận/Huyện đã chọn
   useEffect(() => {
     if (!formData.districtId) {
       setAreas([]);
@@ -92,32 +109,38 @@ const Profile = () => {
     fetchAreas();
   }, [formData.districtId]);
 
+  // Hàm xử lý khi thay đổi nội dung các ô nhập liệu
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // Kích hoạt ô chọn file ảnh khi click vào avatar (chỉ khi đang ở chế độ sửa)
   const handleAvatarClick = () => {
     if (isEditing) {
       fileInputRef.current?.click();
     }
   };
 
+  // Xử lý khi người dùng chọn một file ảnh mới
   const handleAvatarChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
+        // Lưu ảnh dưới dạng chuỗi base64 vào state (tạm thời)
         setFormData(prev => ({ ...prev, avatar: reader.result }));
       };
       reader.readAsDataURL(file);
     }
   };
 
+  // Hàm gửi yêu cầu cập nhật thông tin về server
   const handleSave = async () => {
     setSaving(true);
     setMessage({ type: "", text: "" });
     try {
+      // Tìm tên Quận và Phường từ ID để đồng bộ dữ liệu hiển thị
       const districtName = districts.find(d => String(d.districtId) === String(formData.districtId))?.districtName || "";
       const areaName = areas.find(a => String(a.areaId) === String(formData.areaId))?.areaName || "";
       
@@ -127,9 +150,11 @@ const Profile = () => {
         areaName
       };
       
+      // Gọi hàm cập nhật từ AuthContext (hàm này thường sẽ gọi API backend)
       updateUser(payload);
       setIsEditing(false);
       setMessage({ type: "success", text: "Cập nhật thông tin thành công!" });
+      // Tự động ẩn thông báo sau 3 giây
       setTimeout(() => setMessage({ type: "", text: "" }), 3000);
     } catch (error) {
       setMessage({ type: "error", text: "Có lỗi xảy ra khi lưu thông tin." });
@@ -138,10 +163,12 @@ const Profile = () => {
     }
   };
 
+  // Nếu chưa có thông tin user thì không hiển thị gì
   if (!user) return null;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
+      {/* HIỂN THỊ THÔNG BÁO (TOAST MESSAGE) */}
       {message.text && (
         <div className={`mb-6 p-4 rounded-xl text-center font-bold animate-in fade-in slide-in-from-top-4 duration-300 ${
           message.type === "success" ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-red-100 text-red-700 border border-red-200"
@@ -151,7 +178,7 @@ const Profile = () => {
       )}
 
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 transition-all duration-500">
-        {/* Header/Banner Area */}
+        {/* KHU VỰC ẢNH BÌA VÀ AVATAR (BANNER AREA) */}
         <div className="h-48 bg-gradient-to-r from-emerald-500 to-green-400 relative">
           <div className="absolute -bottom-16 left-8">
             <div className="p-2 bg-white rounded-3xl shadow-lg relative group cursor-pointer" onClick={handleAvatarClick}>
@@ -169,6 +196,7 @@ const Profile = () => {
                   <User size={64} className="text-emerald-600" />
                 )}
               </div>
+              {/* Hiển thị icon camera khi di chuột qua nếu đang ở mode Edit */}
               {isEditing && (
                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity text-white">
                   <Camera size={24} />
@@ -177,6 +205,7 @@ const Profile = () => {
             </div>
           </div>
           
+          {/* CÁC NÚT ĐIỀU KHIỂN CHẾ ĐỘ SỬA (EDIT CONTROLS) */}
           <div className="absolute top-6 right-8">
             {isEditing ? (
               <div className="flex gap-2">
@@ -187,7 +216,7 @@ const Profile = () => {
                   <X size={18} /> Hủy
                 </button>
                 <button 
-                  onClick={handleSave}
+                   onClick={handleSave}
                   disabled={saving}
                   className="flex items-center gap-2 bg-white text-emerald-600 hover:bg-emerald-50 px-6 py-2 rounded-xl font-bold shadow-lg transition-all border border-white"
                 >
@@ -205,7 +234,7 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Profile Content */}
+        {/* NỘI DUNG THÔNG TIN CHI TIẾT (PROFILE CONTENT) */}
         <div className="pt-20 pb-12 px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div className="flex-1">
@@ -232,6 +261,7 @@ const Profile = () => {
               )}
             </div>
             
+            {/* THẺ HIỂN THỊ TỔNG ĐIỂM (POINTS CARD) */}
             <div className="bg-emerald-50 px-6 py-4 rounded-2xl border border-emerald-100 flex items-center gap-4">
               <div className="p-3 bg-emerald-500 rounded-xl shadow-lg shadow-emerald-200">
                 <Award size={24} className="text-white" />
@@ -244,7 +274,7 @@ const Profile = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            {/* Info Cards */}
+            {/* CỘT TRÁI: THÔNG TIN CÁ NHÂN (EMAIL, SĐT) */}
             <div className="space-y-6">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-2">
                 Thông tin cá nhân
@@ -293,7 +323,7 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Address Section */}
+            {/* CỘT PHẢI: ĐỊA CHỈ LIÊN LẠC (ADDRESS SECTION) */}
             <div className="space-y-6">
               <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-2">
                 <MapPin size={22} className="text-emerald-500" />
@@ -375,7 +405,7 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* History Section */}
+          {/* LỊCH SỬ TÍCH ĐIỂM (HISTORY SECTION) */}
           <div className="mb-0">
             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2 mb-6">
               <History size={22} className="text-emerald-500" />
@@ -414,6 +444,7 @@ const Profile = () => {
               )}
             </div>
             
+            {/* GỢI Ý ĐỔI QUÀ (REWARDS CALL-TO-ACTION) */}
             {!isEditing && (
               <div className="mt-8 bg-gray-900 rounded-3xl p-8 text-white relative overflow-hidden group">
                 <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">

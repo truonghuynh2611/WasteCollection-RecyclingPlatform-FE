@@ -1,50 +1,77 @@
+// Nhập các hook từ React
 import { useState } from "react";
+// Nhập các icon minh họa từ thư viện lucide-react
 import { ChevronLeft, ChevronRight, Plus, Clock, MapPin, User, X } from "lucide-react";
+// Nhập Sidebar dành riêng cho Manager
 import ManagerSidebar from "./ManagerSidebar";
 
+// Mảng định nghĩa tên các ngày trong tuần và các tháng
 const DAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const MONTHS = ["Tháng 1","Tháng 2","Tháng 3","Tháng 4","Tháng 5","Tháng 6","Tháng 7","Tháng 8","Tháng 9","Tháng 10","Tháng 11","Tháng 12"];
 
+/**
+ * DANH SÁCH LỊCH LÀM VIỆC GIẢ LẬP (MOCK DATA)
+ */
 const initialSchedules = [
   { id: 1, date: "2026-03-06", title: "Ca Sáng - Tuyến A", collector: "Nguyễn Văn An", area: "Khu vực 1A", time: "07:00 - 11:00", color: "bg-green-500", type: "morning" },
   { id: 2, date: "2026-03-06", title: "Ca Chiều - Tuyến B", collector: "Trần Thị Bích", area: "Khu vực 1A", time: "13:00 - 17:00", color: "bg-blue-500", type: "afternoon" },
 ];
 
+/**
+ * CÁC HÀM TIỆN ÍCH XỬ LÝ NGÀY THÁNG
+ */
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
 function getFirstDayOfMonth(year, month) { return new Date(year, month, 1).getDay(); }
 
+/**
+ * COMPONENT QUẢN LÝ LỊCH LÀM VIỆC (CALENDAR VIEW)
+ */
 export default function ManagerSchedule() {
   const today = new Date();
+  // States quản lý thời gian hiện tại trên lịch
   const [currentYear, setCurrentYear] = useState(2026);
-  const [currentMonth, setCurrentMonth] = useState(2);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [schedules, setSchedules] = useState(initialSchedules);
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(2); // Tháng 3 (0-indexed)
+  const [selectedDate, setSelectedDate] = useState(null); // Ngày đang được chọn để xem chi tiết
+  const [schedules, setSchedules] = useState(initialSchedules); // Danh sách lịch
+  const [showAddModal, setShowAddModal] = useState(false); // Trạng thái hiển thị modal thêm lịch
   const [newSchedule, setNewSchedule] = useState({ title: "", collector: "", area: "Khu vực 1A", time: "" });
 
   const daysInMonth = getDaysInMonth(currentYear, currentMonth);
   const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
 
+  // Điều hướng sang tháng trước
   const prevMonth = () => { if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y-1); } else setCurrentMonth(m => m-1); };
+  // Điều hướng sang tháng sau
   const nextMonth = () => { if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y+1); } else setCurrentMonth(m => m+1); };
 
+  // Chuyển đổi ngày thành chuỗi YYYY-MM-DD để so sánh
   const getDateStr = (day) => `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  // Lấy danh sách lịch cho một ngày cụ thể
   const getSchedulesForDay = (day) => schedules.filter(s => s.date === getDateStr(day));
+  // Danh sách lịch của ngày đang được chọn (để hiển thị ở cột bên phải)
   const selectedSchedules = selectedDate ? schedules.filter(s => s.date === getDateStr(selectedDate)) : [];
 
+  /**
+   * HÀM THÊM LỊCH MỚI
+   */
   const addSchedule = () => {
     if (!newSchedule.title || !selectedDate) return;
     setSchedules(prev => [...prev, {
       id: Date.now(), date: getDateStr(selectedDate), ...newSchedule, color: "bg-indigo-500", type: "morning"
     }]);
+    // Reset form và đóng modal
     setNewSchedule({ title: "", collector: "", area: "Khu vực 1A", time: "" });
     setShowAddModal(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* SIDEBAR BÊN TRÁI */}
       <ManagerSidebar />
+
       <div className="flex-1 flex flex-col overflow-hidden">
+        
+        {/* THANH ĐẦU TRANG (Header) */}
         <header className="bg-white border-b border-gray-200 px-8 py-4 flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-800">Quản lý lịch khu vực</h1>
@@ -63,6 +90,8 @@ export default function ManagerSchedule() {
 
         <main className="flex-1 overflow-auto p-8">
           <div className="grid grid-cols-3 gap-6">
+            
+            {/* CỘT TRÁI (2/3): HIỂN THỊ LỊCH THÁNG */}
             <div className="col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-800">{MONTHS[currentMonth]} {currentYear}</h2>
@@ -71,11 +100,15 @@ export default function ManagerSchedule() {
                   <button onClick={nextMonth} className="p-2 hover:bg-gray-100 rounded-lg transition-colors"><ChevronRight className="w-5 h-5 text-gray-600" /></button>
                 </div>
               </div>
+              {/* Tiêu đề các thứ trong tuần */}
               <div className="grid grid-cols-7 mb-2">
                 {DAYS.map(d => <div key={d} className="text-center text-xs font-semibold text-gray-400 py-2">{d}</div>)}
               </div>
+              {/* Các ô ngày trong tháng */}
               <div className="grid grid-cols-7 gap-1">
+                {/* Các ô trống đầu tháng */}
                 {Array.from({ length: firstDay }, (_, i) => <div key={`blank-${i}`} />)}
+                {/* Danh sách các ngày */}
                 {Array.from({ length: daysInMonth }, (_, i) => {
                   const day = i + 1;
                   const daySchedules = getSchedulesForDay(day);
@@ -91,6 +124,7 @@ export default function ManagerSchedule() {
                       }`}
                     >
                       <span className={`text-sm font-semibold ${isToday ? "text-indigo-600" : "text-gray-700"}`}>{day}</span>
+                      {/* Hiển thị tóm tắt các ca làm trong ô ngày */}
                       <div className="mt-1 space-y-0.5">
                         {daySchedules.slice(0, 2).map(s => (
                           <div key={s.id} className={`${s.color} rounded px-1.5 py-0.5`}><p className="text-white text-[10px] truncate leading-tight">{s.title}</p></div>
@@ -102,6 +136,7 @@ export default function ManagerSchedule() {
               </div>
             </div>
 
+            {/* CỘT PHẢI (1/3): CHI TIẾT CÁC CA LÀM TRONG NGÀY ĐANG CHỌN */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <h3 className="text-lg font-bold text-gray-800 mb-4">{selectedDate ? `Lịch ngày ${selectedDate}/${currentMonth + 1}/${currentYear}` : "Chi tiết ngày"}</h3>
               {selectedDate ? (
@@ -131,6 +166,7 @@ export default function ManagerSchedule() {
         </main>
       </div>
 
+      {/* MODAL THÊM CA LÀM VIỆC MỚI */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">

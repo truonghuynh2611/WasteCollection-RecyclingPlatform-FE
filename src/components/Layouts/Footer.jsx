@@ -1,3 +1,4 @@
+// Nhập các icon trang trí và minh họa từ thư viện lucide-react
 import {
   Recycle,
   ThumbsUp,
@@ -12,7 +13,10 @@ function Footer() {
   return (
     <footer className="bg-gray-50 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* VÙNG CHÍNH: Chia 3 cột thông tin */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+          
+          {/* CỘT 1: Giới thiệu chung và Mạng xã hội */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <Recycle className="h-8 w-8 text-green-500" />
@@ -20,29 +24,31 @@ function Footer() {
                 Green Vietnam
               </span>
             </div>
-            <p className="text-gray-600 mb-4 leading-relaxed">
+            <p className="text-gray-600 mb-4 leading-relaxed text-sm">
               Sứ mệnh của chúng tôi là mang đến giải pháp tái chế thông minh,
               kết nối cộng đồng vì một Việt Nam xanh, sạch và bền vững thông qua
               công nghệ hiện đại.
             </p>
+            {/* Các nút mạng xã hội (Placeholders) */}
             <div className="flex space-x-3">
-              <button className="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200 transition">
+              <button className="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200 transition" title="Facebook">
                 <ThumbsUp className="h-5 w-5" />
               </button>
-              <button className="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200 transition">
+              <button className="bg-blue-100 text-blue-600 p-2 rounded-full hover:bg-blue-200 transition" title="Messenger">
                 <MessageCircle className="h-5 w-5" />
               </button>
-              <button className="bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 transition">
+              <button className="bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200 transition" title="Youtube">
                 <Youtube className="h-5 w-5" />
               </button>
             </div>
           </div>
 
+          {/* CỘT 2: Danh mục liên kết nhanh */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               Về chúng tôi
             </h3>
-            <ul className="space-y-2">
+            <ul className="space-y-2 text-sm">
               <li>
                 <a
                   href="#"
@@ -78,9 +84,10 @@ function Footer() {
             </ul>
           </div>
 
+          {/* CỘT 3: Thông tin liên hệ trực tiếp */}
           <div>
             <h3 className="text-lg font-bold text-gray-900 mb-4">Liên hệ</h3>
-            <ul className="space-y-3">
+            <ul className="space-y-3 text-sm">
               <li className="flex items-start space-x-3">
                 <MapPin className="h-5 w-5 text-green-500 mt-1 flex-shrink-0" />
                 <span className="text-gray-600">
@@ -99,20 +106,21 @@ function Footer() {
           </div>
         </div>
 
-        <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-600 text-sm mb-4 md:mb-0">
+        {/* PHẦN CHÂN TRANG: Bản quyền và Chính sách */}
+        <div className="border-t border-gray-200 pt-8 flex flex-col md:flex-row justify-between items-center text-sm">
+          <p className="text-gray-500 mb-4 md:mb-0">
             © 2024 Green Vietnam. Tất cả quyền được bảo lưu.
           </p>
           <div className="flex space-x-6">
             <a
               href="#"
-              className="text-gray-600 hover:text-green-500 text-sm transition"
+              className="text-gray-500 hover:text-green-500 transition"
             >
               Điều khoản sử dụng
             </a>
             <a
               href="#"
-              className="text-gray-600 hover:text-green-500 text-sm transition"
+              className="text-gray-500 hover:text-green-500 transition"
             >
               Chính sách bảo mật
             </a>

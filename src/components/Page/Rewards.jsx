@@ -1,27 +1,45 @@
+// Nhập các hook quản lý trạng thái và hiệu ứng từ React
 import { useState, useEffect } from "react";
+// Nhập các biểu tượng trang trí từ lucide-react (Cúp, Túi mua sắm, Quà tặng, Đồng hồ, Sao...)
 import { Award, ShoppingBag, Gift, Clock, CheckCircle2, AlertCircle, ChevronRight, Star, X, Copy, ExternalLink, Tag } from "lucide-react";
+// Nhập context xác thực để lấy thông tin người dùng và số điểm hiện có
 import { useAuth } from "../../contexts/AuthContext";
+// Nhập các hàm gọi API xử lý Voucher (Lấy danh sách, Đổi quà)
 import { getVouchers, redeemVoucher } from "../../api/voucher";
 
+// Cấu hình URL cơ sở cho API và hàm lấy đường dẫn ảnh từ server
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:5000/api").replace(/\/api$/, "");
 const getImageUrl = (path) => path ? (path.startsWith("http") ? path : `${API_BASE}${path}`) : null;
+// Nhập thư viện framer-motion để tạo các hiệu ứng chuyển động mượt mà cho UI
 import { motion, AnimatePresence } from "framer-motion";
 
+/**
+ * COMPONENT ĐỔI THƯỞNG (REWARDS)
+ * Chức năng: Cho phép người dùng xem danh sách quà tặng (voucher) và dùng điểm tích lũy để đổi
+ */
 function Rewards() {
+  // Lấy dữ liệu người dùng và hàm cập nhật thông tin từ AuthContext
   const { user, updateUser } = useAuth();
-  const [vouchers, setVouchers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("all");
-  const [successRedemption, setSuccessRedemption] = useState(null); // { message: string, code: string, voucherName: string }
-  const [redeemingId, setRedeemingId] = useState(null);
-  const [confirmRedemption, setConfirmRedemption] = useState(null); // voucher object to confirm
+  
+  // CÁC TRẠNG THÁI (STATE) QUẢN LÝ DỮ LIỆU VÀ CỬA SỔ TỰ CHỌN
+  const [vouchers, setVouchers] = useState([]); // Danh sách toàn bộ quà tặng
+  const [loading, setLoading] = useState(true); // Trạng thái đang tải từ API
+  const [activeTab, setActiveTab] = useState("all"); // Danh mục hiện tại đang được chọn lọc
+  const [successRedemption, setSuccessRedemption] = useState(null); // Lưu thông tin quà đã đổi thành công để hiện Modal chúc mừng
+  const [redeemingId, setRedeemingId] = useState(null); // ID của quà đang trong quá trình xử lý đổi
+  const [confirmRedemption, setConfirmRedemption] = useState(null); // Lưu quà đang chờ xác nhận từ người dùng
 
+  // Tổng số điểm hiện tại của người dùng (mặc định là 0 nếu chưa có thông tin)
   const userPoints = user?.totalPoints ?? 0;
 
+  // Tự động gọi API lấy danh sách quà tặng khi trang vừa được tải
   useEffect(() => {
     fetchVouchers();
   }, []);
 
+  /**
+   * Hàm gọi API lấy danh sách Voucher
+   */
   const fetchVouchers = async () => {
     try {
       const res = await getVouchers();
@@ -35,32 +53,40 @@ function Rewards() {
     }
   };
 
+  /**
+   * Bước 1: Kiểm tra xem người dùng có đủ điểm không trước khi hiện Modal xác nhận
+   */
   const triggerConfirm = (voucher) => {
     if (userPoints < voucher.pointsRequired) return;
     setConfirmRedemption(voucher);
   };
 
+  /**
+   * Bước 2: Xử lý thực thi việc đổi quà (Gửi yêu cầu lên server)
+   */
   const handleRedeem = async (voucher) => {
+    // Kiểm tra thông tin định danh công dân
     if (!user || !user.citizenId) {
       alert("Không tìm thấy thông tin công dân. Vui lòng đăng nhập lại.");
       setConfirmRedemption(null);
       return;
     }
 
-    setConfirmRedemption(null);
-    setRedeemingId(voucher.voucherId);
+    setConfirmRedemption(null); // Đóng modal xác nhận
+    setRedeemingId(voucher.voucherId); // Bắt đầu hiệu ứng loading trên nút
     try {
       const res = await redeemVoucher(user.citizenId, voucher.voucherId);
       if (res.success) {
-        // Update points in auth context without reloading
+        // Cập nhật lại số điểm trong context ngay lập tức để UI đồng bộ (không cần tải lại trang)
         updateUser({ totalPoints: user.totalPoints - voucher.pointsRequired });
         
+        // Hiển thị thông tin Voucher vừa đổi thành công (mã code, tên quà)
         setSuccessRedemption({
           message: res.message || "Đổi quà thành công!",
           code: res.voucherCode || voucher.voucherCode || "WELCOME2026",
           voucherName: res.voucherName || voucher.voucherName
         });
-        fetchVouchers(); // Refresh stock
+        fetchVouchers(); // Tải lại danh sách để cập nhật số lượng tồn kho (stock)
       } else {
         alert(res.message || "Lỗi khi đổi quà.");
       }
@@ -72,20 +98,26 @@ function Rewards() {
     }
   };
 
+  // Tạo danh sách các danh mục duy nhất từ dữ liệu Voucher để làm bộ lọc (Tabs)
   const categories = ["all", ...new Set(vouchers.map(v => v.category).filter(Boolean))];
 
+  // Lọc danh sách quà theo Tab đang được chọn
   const filteredVouchers = activeTab === "all" 
     ? vouchers 
     : vouchers.filter(v => v.category === activeTab);
 
+  /**
+   * Hàm hỗ trợ sao chép mã Voucher vào bộ nhớ tạm (Clipboard)
+   */
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text);
-    // Could add a "Copied!" toast here
+    // Có thể thêm Toast thông báo "Đã sao chép" ở đây
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 min-h-screen bg-gray-50/30">
-      {/* Header Section */}
+      
+      {/* PHẦN ĐẦU TRANG: Banner điểm số hiện tại (Hero Section) */}
       <div className="relative mb-12 overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-emerald-600 via-emerald-500 to-teal-400 p-10 text-white shadow-2xl shadow-emerald-200/50">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-8">
           <div>
@@ -96,9 +128,10 @@ function Rewards() {
               Đổi Điểm Nhận Quà
             </h1>
             <p className="text-emerald-50 opacity-90 text-lg max-w-xl font-medium leading-relaxed">
-              Tích lũy điểm từ việc bảo cáo rác thải và đổi lấy những phần quà hấp dẫn từ các đối tác hàng đầu.
+              Tích lũy điểm từ việc báo cáo rác thải và đổi lấy những phần quà hấp dẫn từ các đối tác hàng đầu.
             </p>
           </div>
+          {/* Box hiển thị số điểm nổi bật */}
           <div className="bg-white/10 backdrop-blur-xl rounded-[2rem] p-8 border border-white/20 flex flex-col items-center justify-center min-w-[240px] shadow-inner">
             <span className="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100 mb-2">Số dư điểm hiện tại</span>
             <span className="text-5xl font-black flex items-center gap-3 tabular-nums">
@@ -108,12 +141,12 @@ function Rewards() {
           </div>
         </div>
         
-        {/* Decorative background elements */}
+        {/* Các phần tử trang trí nền (Blurry circles) */}
         <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-white/20 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-[500px] h-[500px] bg-emerald-300/20 rounded-full blur-[120px]"></div>
       </div>
 
-      {/* Categories Bar */}
+      {/* THANH DANH MỤC LỌC (CATEGORIES) */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
         <div className="flex flex-wrap gap-3 items-center">
           <div className="bg-white px-4 py-2 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-2 mr-2">
@@ -136,14 +169,16 @@ function Rewards() {
         </div>
       </div>
 
-      {/* Vouchers Grid */}
+      {/* HIỂN THỊ DANH SÁCH QUÀ TẶNG (VOUCHERS GRID) */}
       {loading ? (
+        // Khung chờ (Skeleton loading) khi đang tải dữ liệu
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {[1,2,3,4,5,6].map(n => (
             <div key={n} className="bg-white rounded-[2.5rem] h-[28rem] animate-pulse border border-gray-100 shadow-sm"></div>
           ))}
         </div>
       ) : filteredVouchers.length === 0 ? (
+        // Hiển thị khi không có quà nào trong danh mục
         <div className="text-center py-24 bg-white rounded-[3rem] border-2 border-dashed border-gray-200 shadow-inner">
           <div className="w-24 h-24 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm">
             <ShoppingBag size={48} className="text-gray-200" />
@@ -152,6 +187,7 @@ function Rewards() {
           <p className="text-gray-400 mt-2 max-w-sm mx-auto font-medium">Chúng tôi đang cập nhật thêm quà tặng mới. Vui lòng quay lại sau nhé!</p>
         </div>
       ) : (
+        // Hiển thị lưới quà tặng
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {filteredVouchers.map((v) => (
             <motion.div 
@@ -161,21 +197,22 @@ function Rewards() {
               key={v.voucherId}
               className="group bg-white rounded-[2.5rem] overflow-hidden border border-gray-100 shadow-xl shadow-gray-200/40 hover:shadow-2xl hover:shadow-emerald-200/30 transition-all duration-500 flex flex-col relative"
             >
-              {/* Image Section */}
+              {/* PHẦN ẢNH VÀ NHÃN (IMAGE & TAGS) */}
               <div className="relative h-60 overflow-hidden shrink-0">
                 <img 
                   src={getImageUrl(v.image) || "https://images.unsplash.com/photo-1549463510-274ce4897d7d?q=80&w=2070&auto=format&fit=crop"} 
                   alt={v.voucherName}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out" 
                 />
+                {/* Nhãn danh mục */}
                 <div className="absolute top-5 left-5">
                   <span className="px-4 py-1.5 bg-white/95 backdrop-blur-md text-emerald-700 text-xs font-black rounded-full shadow-lg flex items-center gap-1.5 uppercase tracking-wider">
                     <Tag size={12} />
-                    {v.category || "General"}
+                    {v.category || "Chung"}
                   </span>
                 </div>
                 
-                {/* Points Overlay */}
+                {/* Hiển thị điểm cần đổi đè lên ảnh */}
                 <div className="absolute bottom-5 right-5">
                   <div className="bg-emerald-600 text-white px-4 py-2 rounded-2xl shadow-xl flex items-center gap-2 font-black tabular-nums border border-white/20">
                     {v.pointsRequired.toLocaleString()}
@@ -183,7 +220,7 @@ function Rewards() {
                   </div>
                 </div>
 
-                {/* Insufficient Points Overlay */}
+                {/* Lớp phủ thông báo khi người dùng không đủ điểm (chỉ hiện khi hover) */}
                 {v.pointsRequired > userPoints && (
                   <div className="absolute inset-0 bg-gray-900/60 backdrop-blur-[4px] flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
                     <div className="bg-white/20 backdrop-blur-xl text-white border border-white/30 px-6 py-3 rounded-[2rem] flex flex-col items-center transform scale-90 group-hover:scale-100 transition-transform duration-500">
@@ -194,7 +231,7 @@ function Rewards() {
                 )}
               </div>
               
-              {/* Content Section */}
+              {/* PHẦN NỘI DUNG (CONTENT) */}
               <div className="p-8 flex-1 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <h3 className="text-2xl font-black text-gray-900 leading-[1.2] group-hover:text-emerald-600 transition-colors">
@@ -206,6 +243,7 @@ function Rewards() {
                   {v.description || "Voucher có giá trị sử dụng tại tất cả các hệ thống cửa hàng trên toàn quốc. Không áp dụng đồng thời với các khuyến mãi khác."}
                 </p>
                 
+                {/* FOOTER CỦA CARD: Số lượng tồn và Nút Đổi */}
                 <div className="pt-6 border-t border-gray-50 flex items-center justify-between mt-auto">
                   <div className="flex flex-col">
                     <span className="text-[10px] text-gray-400 font-black uppercase tracking-widest mb-1">Số lượng còn lại</span>
@@ -233,7 +271,7 @@ function Rewards() {
                 </div>
               </div>
               
-              {/* Expiry Footer */}
+              {/* NHÃN HẠN DÙNG DƯỚI ĐÁY (EXPIRY FOOTER) */}
               {v.expiryDays > 0 && (
                 <div className="px-8 py-4 bg-gray-50/80 border-t border-gray-100 flex items-center gap-2 text-[10px] text-gray-400 font-black uppercase tracking-wider">
                   <Clock size={16} className="text-gray-300" />
@@ -245,7 +283,7 @@ function Rewards() {
         </div>
       )}
 
-      {/* Points Tip Card */}
+      {/* THẺ GỢI Ý CÁCH KIẾM ĐIỂM (TIP CARD) */}
       <div className="mt-20 bg-emerald-600 rounded-[3rem] p-12 text-white flex flex-col lg:flex-row items-center gap-10 shadow-2xl shadow-emerald-200 relative overflow-hidden group">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
         <div className="w-24 h-24 bg-white rounded-[2rem] flex items-center justify-center shrink-0 shadow-2xl rotate-6 group-hover:rotate-12 transition-transform">
@@ -265,7 +303,7 @@ function Rewards() {
         </button>
       </div>
 
-      {/* SUCCESS MODAL */}
+      {/* MODAL THÔNG BÁO ĐỔI QUÀ THÀNH CÔNG (SUCCESS MODAL) */}
       <AnimatePresence>
         {successRedemption && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">
@@ -291,6 +329,7 @@ function Rewards() {
               <h3 className="text-3xl font-black text-emerald-900 mb-2">{successRedemption.message}</h3>
               <p className="text-gray-500 font-bold mb-10 text-lg">Bạn đã đổi thành công <span className="text-emerald-600">{successRedemption.voucherName}</span></p>
               
+              {/* Hiển thị mã Voucher cho người dùng copy */}
               <div className="w-full bg-emerald-50 rounded-[2rem] p-8 border-2 border-dashed border-emerald-200 mb-10 group relative">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-4 block">Mã ưu đãi của bạn</span>
                 <div className="flex items-center justify-center gap-4">
@@ -304,8 +343,7 @@ function Rewards() {
                     <Copy size={24} />
                   </button>
                 </div>
-                
-                {/* Coupon Decoration */}
+                {/* Trang trí hình nửa vòng tròn ở 2 bên mã voucher (giống cuống vé) */}
                 <div className="absolute top-1/2 -left-4 -translate-y-1/2 w-8 h-8 bg-white rounded-full border border-emerald-50 shadow-inner"></div>
                 <div className="absolute top-1/2 -right-4 -translate-y-1/2 w-8 h-8 bg-white rounded-full border border-emerald-50 shadow-inner"></div>
               </div>
@@ -318,10 +356,7 @@ function Rewards() {
                   Đóng
                 </button>
                 <button 
-                  onClick={() => {
-                    setSuccessRedemption(null);
-                    // Navigate to 'My Vouchers' if we have it
-                  }}
+                  onClick={() => setSuccessRedemption(null)}
                   className="py-5 px-6 bg-emerald-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest shadow-xl shadow-emerald-200 hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
                 >
                   Dùng ngay <ExternalLink size={20} />
@@ -339,7 +374,7 @@ function Rewards() {
         )}
       </AnimatePresence>
 
-      {/* CONFIRM MODAL */}
+      {/* MODAL XÁC NHẬN ĐỔI QUÀ (CONFIRM MODAL) */}
       <AnimatePresence>
         {confirmRedemption && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden">

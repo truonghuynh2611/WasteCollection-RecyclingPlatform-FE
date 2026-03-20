@@ -1,13 +1,23 @@
+// Nhập các hook từ React
 import { useState } from "react";
+// Nhập các icon trang trí từ thư viện lucide-react
 import { Lock, Phone, User, Eye, EyeOff, Check, Mail } from "lucide-react";
+// Nhập hook điều hướng trang từ react-router-dom
 import { useNavigate, Navigate } from "react-router-dom";
+// Nhập hàm gọi API đăng ký tài khoản
 import { registerUser } from "../../api/auth";
+// Nhập context quản lý xác thực và danh sách Role
 import { useAuth, ROLES } from "../../contexts/AuthContext";
 
 function Register() {
   const navigate = useNavigate();
+  // Lấy trạng thái đăng nhập từ Context
   const { login: setAuthUser, isAuthenticated, user } = useAuth();
 
+  /**
+   * TỰ ĐỘNG ĐIỀU HƯỚNG NẾU ĐÃ ĐĂNG NHẬP
+   * Ngăn người dùng đã đăng nhập truy cập lại trang đăng ký
+   */
   if (isAuthenticated && user) {
     if (user.role === ROLES.ADMIN || user.role === "r1") return <Navigate to="/admin" replace />;
     if (user.role === ROLES.COLLECTOR || user.role === "r2") return <Navigate to="/collector" replace />;
@@ -15,6 +25,7 @@ function Register() {
     return <Navigate to="/" replace />;
   }
 
+  // State lưu trữ dữ liệu nhập liệu từ form đăng ký
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -22,11 +33,18 @@ function Register() {
     password: "",
   });
 
+  // State quản lý ẩn/hiện mật khẩu
   const [showPassword, setShowPassword] = useState(false);
+  // State quản lý trạng thái đang gửi yêu cầu lên server
   const [loading, setLoading] = useState(false);
+  // State lưu thông báo lỗi
   const [error, setError] = useState("");
+  // State đánh dấu việc đăng ký thành công để hiển thị giao diện thông báo
   const [success, setSuccess] = useState(false);
 
+  /**
+   * Hàm cập nhật state khi người dùng nhập liệu
+   */
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData({
@@ -35,33 +53,38 @@ function Register() {
     });
   };
 
+  /**
+   * Hàm xử lý khi người dùng nhấn nút "Đăng ký ngay"
+   */
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
+    e.preventDefault(); // Chặn load lại trang
+    setError(""); // Xóa lỗi cũ
 
-    // 1. Kiểm tra điền đầy đủ
+    // 1. Kiểm tra việc điền đầy đủ thông tin
     if (!formData.fullName || !formData.email || !formData.phone || !formData.password) {
       setError("Vui lòng điền đầy đủ tất cả các trường");
       return;
     }
 
-    // 2. Validate số điện thoại (bắt đầu bằng 0, đúng 10 số)
+    // 2. Kiểm tra định dạng số điện thoại Việt Nam (10 số, bắt đầu bằng 0)
     const phoneRegex = /^0[0-9]{9}$/;
     if (!phoneRegex.test(formData.phone)) {
       setError("Số điện thoại phải bắt đầu bằng số 0 và bao gồm đúng 10 chữ số");
       return;
     }
 
-    // 3. Validate mật khẩu
-    // Độ dài 6-15, có hoa, thường, đặc biệt, không khoảng trắng
+    // 3. Kiểm tra độ mạnh của mật khẩu
+    // Độ dài từ 6 đến 15 ký tự
     if (formData.password.length < 6 || formData.password.length > 15) {
       setError("Mật khẩu phải dài từ 6 đến 15 ký tự");
       return;
     }
+    // Không chứa khoảng trắng
     if (/\s/.test(formData.password)) {
       setError("Mật khẩu không được chứa khoảng trắng");
       return;
     }
+    // Phải có chữ hoa, chữ thường và ký tự đặc biệt
     const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/;
     if (!pwdRegex.test(formData.password)) {
       setError("Mật khẩu phải bao gồm ít nhất một chữ hoa, một chữ thường và một ký tự đặc biệt");
@@ -70,12 +93,16 @@ function Register() {
 
     setLoading(true);
     try {
+      // Gọi API đăng ký tài khoản (Server sẽ gửi mail OTP)
       await registerUser(formData);
-      setSuccess(true);
+      setSuccess(true); // Hiển thị màn hình thông báo thành công
+      
+      // Sau 0.5 giây chuyển sang trang nhập mã OTP
       setTimeout(() => {
         navigate(`/verify-email?email=${formData.email}`);
       }, 500);
     } catch (err) {
+      // Hiển thị lỗi từ server trả về
       setError(err?.message || "Đăng ký thất bại. Vui lòng thử lại");
     } finally {
       setLoading(false);
@@ -84,7 +111,7 @@ function Register() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Section */}
+      {/* PHẦN BÊN TRÁI: Banner hình ảnh (Ẩn trên mobile) */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 text-white relative overflow-hidden"
         style={{
@@ -118,30 +145,25 @@ function Register() {
             rác thải tái chế từ nhân, cùng nhau xây dựng môi trường bền vững.
           </p>
 
+          {/* Các con số thống kê ấn tượng */}
           <div className="grid grid-cols-3 gap-6">
             <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">
-                100+
-              </div>
+              <div className="text-4xl font-bold text-emerald-400 mb-2">100+</div>
               <p className="text-sm text-white/70">Khu vực thu gom</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">
-                50K+
-              </div>
+              <div className="text-4xl font-bold text-emerald-400 mb-2">50K+</div>
               <p className="text-sm text-white/70">Người tham gia</p>
             </div>
             <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">
-                10K+
-              </div>
+              <div className="text-4xl font-bold text-emerald-400 mb-2">10K+</div>
               <p className="text-sm text-white/70">Quà tặng đã trao</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Right Section */}
+      {/* PHẦN BÊN PHẢI: Form đăng ký */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-8 lg:px-12 py-12 bg-white">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-8">
@@ -153,8 +175,9 @@ function Register() {
             </p>
           </div>
 
+          {/* GIAO DIỆN KHI ĐĂNG KÝ THÀNH CÔNG */}
           {success && (
-            <div className="mb-6 p-6 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col items-center text-center">
+            <div className="mb-6 p-6 bg-emerald-50 border border-emerald-200 rounded-lg flex flex-col items-center text-center animate-fadeIn">
               <div className="bg-emerald-100 p-3 rounded-full mb-4">
                 <Mail className="h-8 w-8 text-emerald-600" />
               </div>
@@ -162,7 +185,7 @@ function Register() {
               <p className="text-emerald-700 mb-4">
                 Chúng tôi đã gửi một email xác thực đến địa chỉ <strong>{formData.email}</strong>.
               </p>
-              <p className="text-sm text-emerald-600 bg-white p-3 rounded border border-emerald-100 italic">
+              <p className="text-sm text-emerald-600 bg-white p-3 rounded border border-emerald-100 italic shadow-sm">
                 Vui lòng kiểm tra hộp thư (bao gồm cả thư rác) để lấy mã xác thực 6 số và kích hoạt tài khoản.
               </p>
               <button 
@@ -174,19 +197,19 @@ function Register() {
             </div>
           )}
 
+          {/* Hiển thị thông báo lỗi */}
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg animate-fadeIn">
               <p className="text-sm text-red-700">{error}</p>
             </div>
           )}
 
+          {/* HIỂN THỊ FORM Đăng ký nếu chưa thành công */}
           {!success && (
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Full Name */}
+            {/* Nhập Họ và tên */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Họ và tên
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Họ và tên</label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -201,11 +224,9 @@ function Register() {
               </div>
             </div>
 
-            {/* Email */}
+            {/* Nhập Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -220,11 +241,9 @@ function Register() {
               </div>
             </div>
 
-            {/* Phone */}
+            {/* Nhập Số điện thoại */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Số điện thoại
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Số điện thoại</label>
               <div className="relative">
                 <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -239,11 +258,9 @@ function Register() {
               </div>
             </div>
 
-            {/* Password */}
+            {/* Nhập Mật khẩu */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Mật khẩu
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu</label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
@@ -255,34 +272,32 @@ function Register() {
                   className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
                   disabled={loading}
                 />
+                {/* Nút ẩn hiện mật khẩu */}
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   disabled={loading}
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {/* Chú thích yêu cầu mật khẩu */}
               <p className="mt-1 text-[10px] text-gray-500 italic">
                 * Mật khẩu dài từ 6 đến 15 ký tự, bao gồm chữ hoa, chữ thường và ít nhất một ký tự đặc biệt, không có khoảng trắng.
               </p>
             </div>
 
-            {/* Submit Button */}
+            {/* Nút gửi form đăng ký */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full mt-6 bg-emerald-500 text-white font-medium py-3 rounded-lg hover:bg-emerald-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full mt-6 bg-emerald-500 text-white font-medium py-3 rounded-lg hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Đang xử lý..." : "Đăng ký ngay"}
             </button>
 
-            {/* Login Link */}
+            {/* Link quay lại trang đăng nhập */}
             <p className="text-center text-sm text-gray-600 pt-4">
               Bạn đã có tài khoản?{" "}
               <a
@@ -293,7 +308,7 @@ function Register() {
               </a>
             </p>
 
-            {/* Privacy Notice */}
+            {/* Thông báo bảo mật */}
             <p className="text-center text-xs text-gray-500 pt-2 flex items-center justify-center space-x-1">
               <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
                 <path

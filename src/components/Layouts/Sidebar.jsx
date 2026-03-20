@@ -1,3 +1,4 @@
+// Nhập các icon từ thư viện lucide-react để minh họa các mục trong menu
 import {
   LayoutGrid,
   ClipboardList,
@@ -8,8 +9,13 @@ import {
   Settings,
   Recycle,
 } from "lucide-react";
+// Nhập hook điều hướng và lấy URL hiện tại từ react-router-dom
 import { useNavigate, useLocation } from "react-router-dom";
 
+/**
+ * DANH SÁCH MENU CHÍNH (PHẦN QUẢN TRỊ)
+ * Bao gồm ID để định danh, Nhãn hiển thị, Icon đại diện và Path để điều hướng
+ */
 const mainMenuItems = [
   { id: "dashboard",   label: "Bảng điều khiển",   icon: LayoutGrid,    path: "/admin" },
   { id: "requests",    label: "Yêu cầu thu gom",   icon: ClipboardList, path: "/reportManagement" },
@@ -18,6 +24,9 @@ const mainMenuItems = [
   { id: "area",        label: "Quản lý khu vực",    icon: Map,           path: "/areaManagement" },
 ];
 
+/**
+ * DANH SÁCH MENU HOẠT ĐỘNG (BỔ TRỢ)
+ */
 const activityMenuItems = [
   { id: "vouchers",  label: "Quản lý Voucher", icon: Recycle,      path: "/voucherManagement" },
   { id: "settings",  label: "Cấu hình điểm thưởng", icon: Settings, path: "/settings" },
@@ -25,20 +34,25 @@ const activityMenuItems = [
 
 const Sidebar = () => {
   const navigate = useNavigate();
-  const location = useLocation();
+  const location = useLocation(); // Dùng để xác định menu nào đang được chọn dựa trên URL
 
+  /**
+   * HÀM RENDER CÁC MỤC MENU
+   * Tự động áp dụng style "Active" nếu path của menu khớp với URL hiện tại
+   */
   const renderMenuItems = (items) =>
     items.map((item) => {
       const Icon = item.icon;
-      const isActive = location.pathname === item.path;
+      const isActive = location.pathname === item.path; // Kiểm tra trạng thái đang chọn
       return (
         <button
           key={item.id}
           onClick={() => navigate(item.path)}
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+          // Áp dụng màu xanh nếu đang active, ngược lại để màu xám
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${
             isActive
-              ? "bg-green-50 text-green-600 font-medium"
-              : "text-gray-600 hover:bg-gray-50"
+              ? "bg-green-50 text-green-600 font-bold border-r-4 border-green-500 rounded-r-none"
+              : "text-gray-600 hover:bg-gray-50 hover:text-green-500"
           }`}
         >
           <Icon className="w-5 h-5 shrink-0" />
@@ -48,29 +62,38 @@ const Sidebar = () => {
     });
 
   return (
-    <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col shrink-0">
+    <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col shrink-0 sticky top-0 h-screen shadow-sm">
+      {/* PHẦN ĐẦU SIDEBAR: Logo ứng dụng */}
       <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
+        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-md shadow-green-100">
           <Recycle className="w-6 h-6 text-white" />
         </div>
-        <span className="text-xl font-semibold text-gray-800">EcoConnect</span>
+        <span className="text-xl font-bold text-gray-800 tracking-tight">EcoConnect</span>
       </div>
 
-      <nav className="flex-1 px-3 py-4">
+      {/* VÙNG CHỨA CÁC NHÓM MENU */}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
+        {/* Nhóm Menu Chính */}
         <div className="mb-6">
-          <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            CHÍNH
+          <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 opacity-70">
+            HỆ THỐNG
           </p>
           {renderMenuItems(mainMenuItems)}
         </div>
 
+        {/* Nhóm Menu Hoạt động */}
         <div>
-          <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            HOẠT ĐỘNG
+          <p className="px-3 text-xs font-bold text-gray-400 uppercase tracking-widest mb-3 opacity-70">
+            DỊCH VỤ
           </p>
           {renderMenuItems(activityMenuItems)}
         </div>
       </nav>
+      
+      {/* PHẦN CHÂN SIDEBAR (Tùy chọn hiển thị phiên bản hoặc hỗ trợ) */}
+      <div className="p-4 border-t border-gray-100 italic text-[10px] text-gray-400 text-center">
+        v1.0.0 - Green Tech Team
+      </div>
     </div>
   );
 };

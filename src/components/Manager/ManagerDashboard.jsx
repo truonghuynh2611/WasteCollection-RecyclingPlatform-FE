@@ -1,10 +1,20 @@
+// Nhập các hook từ React
 import { useState, useEffect } from "react";
+// Nhập các icon minh họa từ thư viện lucide-react
 import { Users, CalendarDays, TrendingUp, AlertCircle } from "lucide-react";
+// Nhập Sidebar dành riêng cho Manager
 import ManagerSidebar from "./ManagerSidebar";
+// Nhập component thả xuống hiển thị thông báo
 import NotificationDropdown from "../common/NotificationDropdown";
+// Nhập API service để lấy số liệu thống kê
 import { getCitizenStats } from "../../api/user";
 
+/**
+ * COMPONENT BẢNG ĐIỀU KHIỂN DÀNH CHO QUẢN LÝ (MANAGER)
+ * Hiển thị tổng quan số liệu và hoạt động trong khu vực
+ */
 export default function ManagerDashboard() {
+  // State lưu trữ các chỉ số thống kê (Stats)
   const [stats, setStats] = useState([
     { label: "Người thu gom khu vực", value: 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "Ca làm hôm nay", value: 0, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
@@ -13,15 +23,22 @@ export default function ManagerDashboard() {
   ]);
   const [loading, setLoading] = useState(true);
 
+  /**
+   * EFFECT: Tải số liệu thống kê khi component được nạp
+   */
   useEffect(() => {
     fetchStats();
   }, []);
 
+  /**
+   * HÀM GỌI API LẤY DỮ LIỆU THỐNG KÊ
+   */
   const fetchStats = async () => {
     try {
       setLoading(true);
       const data = await getCitizenStats();
       if (data) {
+        // Cập nhật lại mảng stats với dữ liệu thật từ API
         setStats([
           { label: "Tổng người dùng", value: data.totalCitizens, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Người dùng mới", value: data.activeCitizens, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
@@ -38,9 +55,13 @@ export default function ManagerDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* SIDEBAR BÊN TRÁI */}
       <ManagerSidebar />
 
+      {/* NỘI DUNG CHÍNH BÊN PHẢI */}
       <div className="flex-1 flex flex-col min-w-0">
+        
+        {/* THANH ĐẦU TRANG (Header) */}
         <header className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Xin chào Quản lý! 👋</h1>
@@ -52,7 +73,8 @@ export default function ManagerDashboard() {
         </header>
 
         <main className="flex-1 p-8 overflow-auto">
-          {/* Stats */}
+          
+          {/* HÀNG 1: HIỂN THỊ CÁC CARD CHỈ SỐ (STATS) */}
           <div className="grid grid-cols-4 gap-6 mb-8">
             {stats.map((s, i) => {
               const Icon = s.icon;
@@ -71,6 +93,8 @@ export default function ManagerDashboard() {
           </div>
 
           <div className="grid grid-cols-2 gap-6">
+            
+            {/* CỘT TRÁI: HOẠT ĐỘNG GẦN ĐÂY (Timeline) */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Hoạt động gần đây</h2>
               <div className="space-y-4">
@@ -81,6 +105,7 @@ export default function ManagerDashboard() {
                 ].map((item, i) => (
                   <div key={i} className="flex gap-3">
                     <div className="mt-1">
+                      {/* Chấm tròn chỉ thị trạng thái (Thành công/Cảnh báo/Tin tức) */}
                       <div className={`w-2 h-2 rounded-full ${
                         item.status === 'success' ? 'bg-green-500' : 
                         item.status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
@@ -95,6 +120,7 @@ export default function ManagerDashboard() {
               </div>
             </div>
 
+            {/* CỘT PHẢI: NHÂN VIÊN ĐANG LÀM VIỆC (Real-time monitoring) */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Người thu gom đang làm việc</h2>
               <div className="space-y-3">

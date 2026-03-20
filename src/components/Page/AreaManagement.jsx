@@ -1,65 +1,83 @@
+// Nhập các React hook cần thiết để quản lý trạng thái và vòng đời component
 import { useState, useEffect } from "react";
+// Nhập các icon từ thư viện lucide-react để minh họa giao diện
 import {
   MapPin, Users, UserCheck, ChevronDown, ChevronUp, Plus,
-  Search, Eye, X, Shield, Phone, Mail
+  Search, Eye, X
 } from "lucide-react";
+// Nhập Sidebar dùng chung cho bố cục trang quản trị
 import Sidebar from "../Layouts/Sidebar";
+// Nhập các hàm gọi API tương ứng với nghiệp vụ quản lý khu vực
 import { getAllAreas, createArea, updateArea, deleteArea } from "../../api/area";
 
+// Định nghĩa kiểu dáng (CSS classes) cho các trạng thái của khu vực
 const statusStyle = {
   "Hoạt động": "bg-green-100 text-green-700",
   "Thiếu quản lí": "bg-amber-100 text-amber-700",
   "Tạm dừng": "bg-red-100 text-red-600",
 };
 
+// Định nghĩa màu sắc biểu thị trạng thái hoạt động của nhân sự
 const staffStatusDot = {
   "Hoạt động": "bg-green-500",
   "Nghỉ phép": "bg-yellow-500",
   "Bị khóa": "bg-red-500",
 };
 
+/**
+ * COMPONENT QUẢN LÝ KHU VỰC (AREA MANAGEMENT)
+ * Cho phép xem danh sách, thêm, và xem chi tiết các khu vực thu gom
+ */
 export default function AreaManagement() {
-  const [search, setSearch] = useState("");
-  const [expandedId, setExpandedId] = useState(null);
-  const [selectedArea, setSelectedArea] = useState(null);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newArea, setNewArea] = useState({ name: "", districtId: "", managerName: "", managerPhone: "", managerEmail: "" });
-  const [areas, setAreas] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // KHAI BÁO CÁC TRẠNG THÁI (STATE)
+  const [search, setSearch] = useState(""); // Lưu từ khóa tìm kiếm
+  const [expandedId, setExpandedId] = useState(null); // Lưu ID khu vực đang được mở rộng danh sách đội
+  const [selectedArea, setSelectedArea] = useState(null); // Khu vực được chọn để xem chi tiết trong Modal
+  const [showAddModal, setShowAddModal] = useState(false); // Trạng thái ẩn/hiện Modal thêm mới
+  const [newArea, setNewArea] = useState({ name: "", district: "" }); // Dữ liệu khu vực mới
+  const [areas, setAreas] = useState([]); // Danh sách khu vực lấy từ API
+  const [loading, setLoading] = useState(true); // Trạng thái đang tải dữ liệu
 
+  // Effect: Tự động tải danh sách khu vực khi lần đầu load trang
   useEffect(() => {
     fetchAreas();
   }, []);
 
+  // Hàm gọi API lấy toàn bộ danh sách khu vực
   const fetchAreas = async () => {
     try {
       setLoading(true);
       const data = await getAllAreas();
       setAreas(data);
     } catch (error) {
-      console.error("Failed to fetch areas:", error);
+      console.error("Lỗi khi tải danh sách khu vực:", error);
     } finally {
       setLoading(false);
     }
   };
 
+  // Logic lọc danh sách dựa trên từ khóa tìm kiếm (theo tên khu vực hoặc tên quận)
   const filtered = areas.filter(a =>
     (a.name || "").toLowerCase().includes(search.toLowerCase()) ||
     (a.district?.districtName || "").toLowerCase().includes(search.toLowerCase())
   );
 
+  // Hàm đóng/mở phần chi tiết đội thu gom dưới mỗi Card
   const toggle = (id) => setExpandedId(prev => prev === id ? null : id);
 
+  // Tính tổng số đội thu gom từ tất cả khu vực
   const totalTeams = areas.reduce((sum, a) => sum + (a.teamCount || 0), 0);
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
+      {/* SIDEBAR ĐIỀU HƯỚNG */}
       <Sidebar />
+      
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
           <div className="max-w-6xl mx-auto">
 
-            {/* Header */}
+            {/* PHẦN ĐẦU TRANG: TIÊU ĐỀ VÀ NÚT THÊM MỚI */}
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý khu vực</h1>
@@ -74,12 +92,11 @@ export default function AreaManagement() {
               </button>
             </div>
 
-            {/* Stats */}
+            {/* BẢNG THỐNG KÊ NHANH (STATS GRID) */}
             <div className="grid grid-cols-4 gap-4 mb-6">
               {[
                 { label: "Tổng khu vực", value: areas.length, color: "text-gray-800", bg: "bg-white" },
                 { label: "Đang hoạt động", value: areas.length, color: "text-green-600", bg: "bg-green-50" },
-                { label: "Thiếu quản lí", value: 0, color: "text-amber-600", bg: "bg-amber-50" },
                 { label: "Tổng đội thu gom", value: totalTeams, color: "text-blue-600", bg: "bg-blue-50" },
               ].map((s, i) => (
                 <div key={i} className={`${s.bg} rounded-xl border border-gray-200 p-5 shadow-sm`}>
@@ -89,7 +106,7 @@ export default function AreaManagement() {
               ))}
             </div>
 
-            {/* Search */}
+            {/* Ô TÌM KIẾM KHU VỰC */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 mb-4 flex items-center gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -104,22 +121,23 @@ export default function AreaManagement() {
               <span className="text-sm text-gray-500">{filtered.length} khu vực</span>
             </div>
 
-            {/* Area Cards */}
+            {/* DANH SÁCH CÁC CARD KHU VỰC */}
             <div className="space-y-3">
               {loading ? (
+                // Hiển thị Skeleton loading khi đang tải dữ liệu
                 Array(3).fill(0).map((_, i) => (
                   <div key={i} className="bg-white rounded-xl border border-gray-200 h-24 animate-pulse"></div>
                 ))
               ) : filtered.map(area => (
                 <div key={area.areaId} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-                  {/* Area Header Row */}
+                  {/* HÀNG THÔNG TIN CHÍNH (HEADER ROW) */}
                   <div className="flex items-center gap-4 px-6 py-5">
-                    {/* Icon */}
+                    {/* Icon đại diện khu vực */}
                     <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-teal-500 rounded-xl flex items-center justify-center shrink-0">
                       <MapPin className="w-6 h-6 text-white" />
                     </div>
 
-                    {/* Area Info */}
+                    {/* Thông tin tên và quận */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3 className="text-base font-bold text-gray-800">{area.name}</h3>
@@ -128,30 +146,20 @@ export default function AreaManagement() {
                       <p className="text-sm text-gray-500">{area.district?.districtName || "Chưa xác định"}</p>
                     </div>
 
-                    {/* Manager */}
-                    <div className="flex items-center gap-3 px-6 border-l border-gray-100">
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center shrink-0">
-                        <Shield className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">Quản lí</p>
-                        <p className="text-sm text-amber-600 font-medium italic">Chưa có quản lí</p>
-                      </div>
-                    </div>
 
-                    {/* Team Count */}
+                    {/* Số lượng đội thu gom */}
                     <div className="px-6 border-l border-gray-100 text-center">
                       <p className="text-2xl font-bold text-gray-800">{area.teamCount || 0}</p>
                       <p className="text-xs text-gray-400">Đội thu gom</p>
                     </div>
 
-                    {/* Total Reports */}
+                    {/* Tổng số báo cáo rác */}
                     <div className="px-6 border-l border-gray-100 text-center">
                       <p className="text-2xl font-bold text-green-600">{area.totalReports || 0}</p>
                       <p className="text-xs text-gray-400">Báo cáo</p>
                     </div>
 
-                    {/* Actions */}
+                    {/* Các nút hành động (Xem chi tiết, Mở rộng danh sách đội) */}
                     <div className="flex items-center gap-2 pl-4 border-l border-gray-100">
                       <button
                         onClick={() => setSelectedArea(area)}
@@ -174,7 +182,7 @@ export default function AreaManagement() {
                     </div>
                   </div>
 
-                  {/* Expanded List (Teams instead of collectors for now) */}
+                  {/* VÙNG NỘI DUNG MỞ RỘNG (EXPANDED CONTENT) */}
                   {expandedId === area.areaId && (
                     <div className="border-t border-gray-100 bg-gray-50 px-6 py-4">
                       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
@@ -192,7 +200,7 @@ export default function AreaManagement() {
         </main>
       </div>
 
-      {/* Area Detail Modal */}
+      {/* MODAL XEM CHI TIẾT KHU VỰC */}
       {selectedArea && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelectedArea(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6" onClick={e => e.stopPropagation()}>
@@ -226,12 +234,6 @@ export default function AreaManagement() {
               </div>
             </div>
 
-            <div className="mt-6 p-4 bg-amber-50 rounded-xl border border-amber-100 flex gap-3">
-              <Shield className="w-5 h-5 text-amber-600 shrink-0" />
-              <p className="text-sm text-amber-700">
-                Thông tin quản lí và danh sách nhân sự chi tiết đang được đồng bộ hóa từ hệ thống nhân sự.
-              </p>
-            </div>
 
             <button onClick={() => setSelectedArea(null)} className="mt-6 w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
               Đóng
@@ -240,7 +242,7 @@ export default function AreaManagement() {
         </div>
       )}
 
-      {/* Add Area Modal */}
+      {/* MODAL THÊM KHU VỰC MỚI */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
@@ -250,7 +252,9 @@ export default function AreaManagement() {
                 <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
+            
             <div className="space-y-4">
+              {/* Nhập tên khu vực và Quận */}
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { label: "Tên khu vực *", key: "name", placeholder: "VD: Khu vực 3B" },
@@ -268,30 +272,8 @@ export default function AreaManagement() {
                   </div>
                 ))}
               </div>
-
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-indigo-600" />
-                  Thông tin quản lí khu vực
-                </p>
-                {[
-                  { label: "Họ tên quản lí", key: "managerName", placeholder: "VD: Nguyễn Văn B" },
-                  { label: "Số điện thoại", key: "managerPhone", placeholder: "0901..." },
-                  { label: "Email", key: "managerEmail", placeholder: "manager@ecoconnect.vn" },
-                ].map(({ label, key, placeholder }) => (
-                  <div key={key} className="mb-3">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                    <input
-                      type="text"
-                      placeholder={placeholder}
-                      value={newArea[key]}
-                      onChange={e => setNewArea(prev => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-                ))}
-              </div>
             </div>
+
             <div className="flex gap-3 mt-4">
               <button onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
                 Hủy
