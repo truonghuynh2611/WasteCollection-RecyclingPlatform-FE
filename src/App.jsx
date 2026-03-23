@@ -104,10 +104,11 @@ function App() {
           <Route
             path="/*"
             element={
-              <div className="min-h-screen bg-gray-50">
+              <div className="min-h-screen bg-gray-50 flex flex-col">
                 {/* Header xuất hiện trên đầu các trang này */}
                 <Header />
-                <Routes>
+                <main className="flex-1 flex flex-col">
+                  <Routes>
                   {/* Trang chủ */}
                   <Route path="/" element={<Homepage />} />
                   {/* Trang đăng ký tài khoản */}
@@ -214,6 +215,7 @@ function App() {
                     }
                   />
                 </Routes>
+                </main>
                 {/* Footer xuất hiện dưới cùng của các trang này */}
                 <Footer />
               </div>

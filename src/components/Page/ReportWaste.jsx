@@ -3,11 +3,11 @@ import { useState, useEffect, useRef } from "react";
 // Nhập các thành phần điều hướng từ thư viện React Router
 import { Link, useNavigate, useLocation } from "react-router-dom";
 // Nhập các biểu tượng minh họa từ lucide-react (Máy ảnh, Vị trí, Gửi, Lọc, Tái chế, Thùng rác...)
-import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2 } from "lucide-react";
+import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2, Eye, X } from "lucide-react";
 // Nhập context xác thực để lấy thông tin công dân và trạng thái đăng nhập
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập các hàm gọi API liên quan đến báo cáo rác (Tạo mới, Lấy danh sách, Xóa)
-import { createWasteReport, getWasteReportsByCitizen, deleteWasteReport } from "../../api/waste";
+import { createWasteReport, getWasteReportsByCitizen, deleteWasteReport, updateWasteReport } from "../../api/waste";
 // Nhập các hàm gọi API lấy thông tin địa giới hành chính (Quận/Huyện, Khu vực)
 import { getAllDistricts, getDistrictDetails } from "../../api/district";
 // Nhập các component dùng chung (Thông báo Toast, Modal xác nhận)
@@ -24,9 +24,9 @@ const RANKS = [
 
 // Các loại rác hỗ trợ phân loại tại nguồn
 const WASTE_TYPES = [
-  { id: "Giấy", label: "Giấy", icon: "📄" },
-  { id: "Nhựa", label: "Nhựa", icon: "🗑️" },
-  { id: "Kim loại", label: "Kim loại", icon: "⚙️" },
+  { id: "Chất thải hữu cơ", label: "Hữu cơ", icon: "🍎" },
+  { id: "Nhựa & Kim loại", label: "Nhựa/Kim loại", icon: "🥫" },
+  { id: "Giấy & Carton", label: "Giấy/Carton", icon: "📄" },
 ];
 
 /**
@@ -53,12 +53,12 @@ const STATUS_MAP = {
 
 // Định nghĩa màu sắc hiển thị tương ứng với từng trạng thái
 const STATUS_COLORS = {
-  "Đang chờ": "bg-yellow-100 text-yellow-800",
-  "Chấp nhận": "bg-blue-100 text-blue-800",
-  "Đã phân công": "bg-indigo-100 text-indigo-800",
-  "Đang đến": "bg-purple-100 text-purple-800",
-  "Hoàn thành": "bg-green-100 text-green-800",
-  "Đã hủy": "bg-red-100 text-red-800",
+  "Đang chờ": "bg-amber-50 text-amber-700 border border-amber-100",
+  "Chấp nhận": "bg-blue-50 text-blue-700 border border-blue-100",
+  "Đã phân công": "bg-sky-50 text-sky-700 border border-sky-100",
+  "Đang đến": "bg-violet-50 text-violet-700 border border-violet-100",
+  "Hoàn thành": "bg-emerald-50 text-emerald-700 border border-emerald-100",
+  "Đã hủy": "bg-rose-50 text-rose-700 border border-rose-100",
 };
 
 /**
@@ -138,6 +138,8 @@ function ReportWaste() {
   // TRẠNG THÁI PHẢN HỒI UI (UI STATES)
   const [toast, setToast] = useState(null); // Thông báo nhanh (Toast)
   const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, reportId: null }); // Xác nhận xóa báo cáo
+  const [selectedReport, setSelectedReport] = useState(null); // Báo cáo đang xem chi tiết
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false); // Trạng thái mở modal chi tiết
 
   /**
    * Hiển thị thông báo Toast trong thời gian ngắn
@@ -351,6 +353,29 @@ function ReportWaste() {
     }
   };
 
+  /**
+   * Xử lý khi người dùng nhấn "Lưu" (Cập nhật) từ Modal chi tiết
+   */
+  const handleUpdate = async (reportId, updatedData) => {
+    try {
+      setSubmitting(true);
+      await updateWasteReport(reportId, updatedData);
+      showToast("Cập nhật báo cáo thành công!");
+      setIsDetailModalOpen(false);
+      
+      // Refresh danh sách báo cáo
+      if (user?.userId) {
+        const data = await getWasteReportsByCitizen(user.userId);
+        setReports(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+      }
+    } catch (error) {
+      console.error("Update failed:", error);
+      showToast(error.response?.data || "Cập nhật thất bại", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // Các hàm hỗ trợ hiển thị logic UI
   const displayStatus = (status) => STATUS_MAP[status] || status;
   const statusColor = (status) => STATUS_COLORS[displayStatus(status)] || "bg-gray-100 text-gray-800";
@@ -385,6 +410,20 @@ function ReportWaste() {
         message="Bạn có chắc chắn muốn xóa báo cáo này? Thao tác này không thể hoàn tác."
         confirmText="Xác nhận xóa"
       />
+
+      {/* Modal xem chi tiết báo cáo */}
+      <ReportDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={() => setIsDetailModalOpen(false)}
+        report={selectedReport}
+        onDelete={(id) => {
+           setIsDetailModalOpen(false);
+           handleDelete(id);
+        }}
+        onSave={handleUpdate}
+        submitting={submitting}
+      />
+
       {/* Thông báo dạng Toast góc màn hình */}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
       
@@ -605,11 +644,12 @@ function ReportWaste() {
 
             <div className="space-y-4">
               {/* Tiêu đề bảng lịch sử */}
-              <div className="grid grid-cols-4 gap-4 text-sm font-medium text-gray-500 pb-2 border-b">
-                <div>THỜI GIAN</div>
-                <div>LOẠI RÁC</div>
-                <div>TRẠNG THÁI</div>
-                <div className="text-right">ĐIỂM</div>
+              <div className="grid grid-cols-[1.5fr_1.5fr_1fr_0.8fr_50px] gap-4 text-xs font-bold text-gray-400 uppercase tracking-wider pb-3 border-b border-gray-100">
+                <div>Thời gian</div>
+                <div>Loại rác</div>
+                <div>Trạng thái</div>
+                <div className="text-right pr-2">Điểm</div>
+                <div className="text-center">Xem</div>
               </div>
 
               {loading ? (
@@ -631,7 +671,7 @@ function ReportWaste() {
                   <div
                     key={report.reportId}
                     id={`report-${report.reportId}`}
-                    className="grid grid-cols-4 gap-4 py-4 border-b last:border-0 hover:bg-gray-50 transition-all rounded-lg px-2"
+                    className="grid grid-cols-[1.5fr_1.5fr_1fr_0.8fr_50px] gap-4 py-5 border-b border-gray-50 last:border-0 hover:bg-gray-50/80 transition-all rounded-xl px-2 group"
                   >
                     <div>
                       <div className="text-sm font-medium text-gray-900">
@@ -655,20 +695,22 @@ function ReportWaste() {
                         {displayStatus(report.status)}
                       </span>
                     </div>
-                    <div className="text-right flex items-center justify-end space-x-2">
-                      <span className="text-emerald-600 font-semibold">
+                    <div className="flex items-center justify-end pr-2">
+                      <span className="text-emerald-600 font-bold tabular-nums">
                         {pointsDisplay(report)}
                       </span>
-                      {/* Chỉ cho phép xóa nếu báo cáo đang ở trạng thái 'Đang chờ' (Pending) */}
-                      {(report.status === 0 || report.status === "Pending" || report.status === "pending") && (
-                        <button
-                          onClick={() => handleDelete(report.reportId)}
-                          className="p-1 text-red-500 hover:bg-red-50 rounded-full transition-colors ml-2"
-                          title="Xóa báo cáo"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <button
+                        onClick={() => {
+                          setSelectedReport(report);
+                          setIsDetailModalOpen(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-all transform hover:scale-110"
+                        title="Xem chi tiết"
+                      >
+                        <Eye size={18} />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -698,5 +740,136 @@ function ReportWaste() {
     </div>
   );
 }
+
+/**
+ * Component hiển thị chi tiết báo cáo rác (Detail Modal)
+ */
+const ReportDetailModal = ({ isOpen, onClose, report, onDelete, onSave, submitting }) => {
+  const [desc, setDesc] = useState("");
+  const [wType, setWType] = useState("");
+
+  useEffect(() => {
+    if (report) {
+       setDesc(report.description || "");
+       setWType(report.wasteType || "");
+    }
+  }, [report]);
+
+  if (!isOpen || !report) return null;
+
+  const isPending = report.status === 0 || report.status === "Pending" || report.status === "pending";
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm transition-opacity">
+      <div className="bg-white w-full max-w-2xl rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden relative animate-in fade-in zoom-in duration-300 max-h-[95vh] overflow-y-auto">
+        
+        {/* Nút đóng (X) */}
+        <button 
+          onClick={onClose}
+          className="absolute top-2 right-2 sm:top-4 sm:right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-all z-10 bg-white/80 backdrop-blur-sm"
+        >
+          <X size={20} />
+        </button>
+
+        <div className="p-5 sm:p-8">
+          <div className="flex items-center space-x-3 sm:space-x-4 mb-6 sm:mb-8">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 bg-emerald-100 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+              <Recycle className="text-emerald-600" size={20} />
+            </div>
+            <div>
+              <h3 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">Chi tiết báo cáo rác</h3>
+              <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Mã số: #{report.reportId}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
+            {/* Cột trái: Hình ảnh */}
+            <div>
+              <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">Hình ảnh hiện trường</p>
+              <div className="aspect-square sm:aspect-[4/3] bg-gray-100 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100">
+                {report.reportImages && report.reportImages.length > 0 ? (
+                  <img 
+                    src={report.reportImages[0].imageurl.startsWith('http') ? report.reportImages[0].imageurl : `http://localhost:61436${report.reportImages[0].imageurl}`} 
+                    alt="Report" 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                    <Camera size={40} className="mb-2 opacity-20" />
+                    <span className="text-sm">Không có ảnh</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Cột phải: Thông tin */}
+            <div className="space-y-4 sm:space-y-6">
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Trạng thái hiện tại</p>
+                <div className="flex">
+                   <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold border border-emerald-100">
+                      {report.status === 0 || report.status === "Pending" ? "Đang chờ xử lý" : 
+                       report.status === 4 || report.status === "Collected" ? "Đã hoàn thành" : report.status}
+                   </span>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Phân loại rác</p>
+                {isPending ? (
+                  <select 
+                    value={wType}
+                    onChange={(e) => setWType(e.target.value)}
+                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none cursor-pointer"
+                  >
+                    <option value="Chất thải hữu cơ">Chất thải hữu cơ</option>
+                    <option value="Nhựa & Kim loại">Nhựa & Kim loại</option>
+                    <option value="Giấy & Carton">Giấy & Carton</option>
+                  </select>
+                ) : (
+                  <p className="text-gray-700 font-medium">{report.wasteType}</p>
+                )}
+              </div>
+
+              <div>
+                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Mô tả / Ghi chú</p>
+                {isPending ? (
+                  <textarea 
+                    value={desc}
+                    onChange={(e) => setDesc(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all resize-none text-sm"
+                  />
+                ) : (
+                  <p className="text-gray-600 text-sm italic">{report.description || "Không có mô tả"}</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Chân modal: Nút hành động */}
+          {isPending && (
+            <div className="mt-8 sm:mt-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-end space-y-3 sm:space-y-0 sm:space-x-4">
+              <button
+                onClick={() => onDelete(report.reportId)}
+                className="px-6 py-2.5 sm:py-3 text-red-600 font-bold hover:bg-red-50 rounded-xl sm:rounded-2xl transition-all flex items-center justify-center space-x-2 border border-transparent hover:border-red-100"
+              >
+                <Trash2 size={18} />
+                <span>Xóa báo cáo</span>
+              </button>
+              <button
+                disabled={submitting}
+                onClick={() => onSave(report.reportId, { description: desc, wasteType: wType, areaId: report.areaId })}
+                className="px-8 py-2.5 sm:py-3 bg-emerald-600 text-white font-bold rounded-xl sm:rounded-2xl shadow-lg shadow-emerald-200 hover:bg-emerald-700 transition-all flex items-center justify-center space-x-2 disabled:bg-gray-300 disabled:shadow-none"
+              >
+                <span>{submitting ? "Đang lưu..." : "Lưu thay đổi"}</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default ReportWaste;

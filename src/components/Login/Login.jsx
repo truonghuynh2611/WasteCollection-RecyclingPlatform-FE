@@ -113,7 +113,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
+    <div className="flex-1 flex overflow-hidden">
       {/* PHẦN BÊN TRÁI: Banner hình ảnh và giới thiệu (Ẩn trên mobile) */}
       <div
         className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 text-white relative overflow-hidden"
@@ -169,7 +169,7 @@ function Login() {
       </div>
 
       {/* PHẦN BÊN PHẢI: Form đăng nhập chính */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-6 sm:px-8 lg:px-12 py-12 bg-white">
+      <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 lg:px-12 py-8 lg:py-12 bg-white overflow-y-auto">
         <div className="max-w-md mx-auto w-full">
           <div className="mb-8">
             <h2 className="text-3xl font-bold text-gray-900 mb-2">Đăng nhập hệ thống</h2>

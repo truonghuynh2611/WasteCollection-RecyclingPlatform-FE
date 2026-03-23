@@ -63,12 +63,8 @@ const Sidebar = () => {
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col shrink-0 sticky top-0 h-screen shadow-sm">
-      {/* PHẦN ĐẦU SIDEBAR: Logo ứng dụng */}
-      <div className="p-6 flex items-center gap-3">
-        <div className="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center shadow-md shadow-green-100">
-          <Recycle className="w-6 h-6 text-white" />
-        </div>
-        <span className="text-xl font-bold text-gray-800 tracking-tight">EcoConnect</span>
+      {/* PHẦN ĐẦU SIDEBAR (ĐÃ LƯỢC BỎ LOGO) */}
+      <div className="p-4 border-b border-gray-100">
       </div>
 
       {/* VÙNG CHỨA CÁC NHÓM MENU */}

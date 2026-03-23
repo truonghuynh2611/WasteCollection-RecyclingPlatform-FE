@@ -41,3 +41,13 @@ export const deleteWasteReport = async (reportId) => {
   const response = await axiosClient.delete(`/WasteReport/${reportId}`);
   return response.data;
 };
+
+/**
+ * Cập nhật thông tin một báo cáo rác (chỉ khi đang ở trạng thái Chờ xử lý)
+ * @param {string|number} reportId - ID của báo cáo
+ * @param {object} updateData - Dữ liệu cần cập nhật (Mô tả, Loại rác, AreaId...)
+ */
+export const updateWasteReport = async (reportId, updateData) => {
+  const response = await axiosClient.put(`/WasteReport/${reportId}`, updateData);
+  return response.data;
+};

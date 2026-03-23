@@ -1,9 +1,9 @@
-// Nhập React và các hook cần thiết
 import React, { useState, useEffect } from 'react';
-// Nhập các hàm gọi API để lấy và cập nhập cấu hình
 import { getAllConfigs, updateConfig } from '../../api/config';
-// Thư viện hỗ trợ hiển thị thông báo (toast)
 import toast from 'react-hot-toast';
+import Sidebar from '../Layouts/Sidebar';
+import ManagerSidebar from '../Manager/ManagerSidebar';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * COMPONENT CẤU HÌNH ĐIỂM THƯỞNG (POINT CONFIGURATION)
@@ -52,18 +52,29 @@ const PointConfiguration = () => {
     }
   };
 
+  const { isManager } = useAuth();
+  const CurrentSidebar = isManager() ? ManagerSidebar : Sidebar;
+
   // Hiển thị vòng xoay loading khi đang tải dữ liệu lần đầu
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full min-h-[80vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-100 border-t-emerald-600"></div>
+      <div className="min-h-screen bg-gray-50 flex text-emerald-900">
+        <CurrentSidebar />
+        <div className="flex-1 flex justify-center items-center h-full min-h-[80vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-emerald-100 border-t-emerald-600"></div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 p-6 lg:p-8 transition-all duration-300">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* SIDEBAR TƯƠNG ỨNG VỚI ROLE */}
+      <CurrentSidebar />
+
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 overflow-auto p-6 lg:p-8 transition-all duration-300">
+          <div className="max-w-4xl mx-auto space-y-6">
         
         {/* PHẦN TIÊU ĐỀ (HEADER) */}
         <div className="pb-4">
@@ -183,6 +194,8 @@ const PointConfiguration = () => {
           </div>
         </div>
 
+          </div>
+        </main>
       </div>
     </div>
   );
