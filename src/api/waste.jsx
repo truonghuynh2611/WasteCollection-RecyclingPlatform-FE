@@ -1,5 +1,13 @@
 // Nhập axiosClient để thực hiện các yêu cầu liên quan đến báo cáo rác thải
 import axiosClient from "./axiosClient";
+
+export const getPendingReportsForAdmin = async () => {
+    const response = await axiosClient.get("/WasteReport/admin/pending");
+    if (response.data && response.data.success) {
+        return response.data.data;
+    }
+    throw new Error(response.data?.message || "Lỗi khi lấy danh sách báo cáo chờ xử lý");
+};
  
 /**
  * Gửi một báo cáo rác mới lên hệ thống

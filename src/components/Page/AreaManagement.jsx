@@ -9,6 +9,8 @@ import {
 import Sidebar from "../Layouts/Sidebar";
 // Nhập các hàm gọi API tương ứng với nghiệp vụ quản lý khu vực
 import { getAllAreas, createArea, updateArea, deleteArea } from "../../api/area";
+import { getAllDistricts } from "../../api/district";
+import { toast } from "react-hot-toast"; // assuming toast is used
 
 // Định nghĩa kiểu dáng (CSS classes) cho các trạng thái của khu vực
 const statusStyle = {
@@ -36,12 +38,26 @@ export default function AreaManagement() {
   const [showAddModal, setShowAddModal] = useState(false); // Trạng thái ẩn/hiện Modal thêm mới
   const [newArea, setNewArea] = useState({ name: "", district: "" }); // Dữ liệu khu vực mới
   const [areas, setAreas] = useState([]); // Danh sách khu vực lấy từ API
+  const [districts, setDistricts] = useState([]); // Danh sách quận huyện
   const [loading, setLoading] = useState(true); // Trạng thái đang tải dữ liệu
+  const [isEditing, setIsEditing] = useState(false); // Đang sửa hay thêm mới
 
   // Effect: Tự động tải danh sách khu vực khi lần đầu load trang
   useEffect(() => {
     fetchAreas();
+    fetchDistricts();
   }, []);
+
+  const fetchDistricts = async () => {
+    try {
+      const data = await getAllDistricts();
+      if (data && data.success) {
+        setDistricts(data.data);
+      }
+    } catch (error) {
+      console.error("Lỗi khi tải danh sách quận huyện:", error);
+    }
+  };
 
   // Hàm gọi API lấy toàn bộ danh sách khu vực
   const fetchAreas = async () => {
@@ -53,6 +69,52 @@ export default function AreaManagement() {
       console.error("Lỗi khi tải danh sách khu vực:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Hàm lưu khu vực (Thêm mới hoặc Cập nhật)
+  const handleSaveArea = async () => {
+    if (!newArea.name || !newArea.districtId) {
+      toast.error("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+
+    try {
+      const payload = {
+        name: newArea.name,
+        districtId: parseInt(newArea.districtId)
+      };
+
+      if (isEditing && selectedArea) {
+        await updateArea(selectedArea.areaId, payload);
+        toast.success("Cập nhật khu vực thành công");
+      } else {
+        await createArea(payload);
+        toast.success("Thêm khu vực mới thành công");
+      }
+
+      setShowAddModal(false);
+      setIsEditing(false);
+      setNewArea({ name: "", districtId: "" });
+      fetchAreas();
+    } catch (error) {
+      const msg = error.response?.data?.message || "Đã có lỗi xảy ra";
+      toast.error(msg);
+      console.error("Lỗi khi lưu khu vực:", error);
+    }
+  };
+
+  // Hàm xóa khu vực
+  const handleDeleteArea = async (id) => {
+    if (!window.confirm("Bạn có chắc chắn muốn xóa khu vực này?")) return;
+
+    try {
+      await deleteArea(id);
+      toast.success("Xóa khu vực thành công");
+      fetchAreas();
+    } catch (error) {
+      toast.error("Không thể xóa khu vực này");
+      console.error("Lỗi khi xóa khu vực:", error);
     }
   };
 
@@ -169,6 +231,25 @@ export default function AreaManagement() {
                         <Eye className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => {
+                          setIsEditing(true);
+                          setNewArea({ name: area.name, districtId: area.districtId });
+                          setSelectedArea(area);
+                          setShowAddModal(true);
+                        }}
+                        className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                        title="Sửa khu vực"
+                      >
+                        <Plus className="w-4 h-4 rotate-45" /> {/* Use Plus as Edit icon or similar if Pen not imported */}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteArea(area.areaId)}
+                        className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Xóa khu vực"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => toggle(area.areaId)}
                         className="flex items-center gap-1 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
                       >
@@ -254,35 +335,47 @@ export default function AreaManagement() {
             </div>
             
             <div className="space-y-4">
-              {/* Nhập tên khu vực và Quận */}
-              <div className="grid grid-cols-2 gap-3">
-                {[
-                  { label: "Tên khu vực *", key: "name", placeholder: "VD: Khu vực 3B" },
-                  { label: "Quận / Huyện *", key: "district", placeholder: "VD: Quận 3" },
-                ].map(({ label, key, placeholder }) => (
-                  <div key={key}>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-                    <input
-                      type="text"
-                      placeholder={placeholder}
-                      value={newArea[key]}
-                      onChange={e => setNewArea(prev => ({ ...prev, [key]: e.target.value }))}
-                      className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                    />
-                  </div>
-                ))}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tên khu vực *</label>
+                <input
+                  type="text"
+                  placeholder="VD: Khu vực 3B"
+                  value={newArea.name}
+                  onChange={e => setNewArea(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Quận / Huyện *</label>
+                <select
+                  value={newArea.districtId}
+                  onChange={e => setNewArea(prev => ({ ...prev, districtId: e.target.value }))}
+                  className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                >
+                  <option value="">Chọn quận huyện...</option>
+                  {districts.map(d => (
+                    <option key={d.districtId} value={d.districtId}>{d.districtName}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
+            <div className="flex gap-3 mt-6">
+              <button 
+                onClick={() => {
+                  setShowAddModal(false);
+                  setIsEditing(false);
+                  setNewArea({ name: "", districtId: "" });
+                }} 
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
                 Hủy
               </button>
               <button
-                onClick={() => setShowAddModal(false)}
+                onClick={handleSaveArea}
                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors"
               >
-                Tạo khu vực
+                {isEditing ? "Cập nhật" : "Tạo khu vực"}
               </button>
             </div>
           </div>
