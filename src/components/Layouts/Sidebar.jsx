@@ -22,6 +22,7 @@ const mainMenuItems = [
   { id: "users",       label: "Quản lý người dùng", icon: Users,         path: "/userManagement" },
   { id: "collector",   label: "Quản lý người thu gom", icon: UserCog,      path: "/collectorManagement" },
   { id: "area",        label: "Quản lý khu vực",    icon: Map,           path: "/areaManagement" },
+  { id: "teams",       label: "Quản lý đội",        icon: Users,         path: "/teamManagement" },
 ];
 
 /**
