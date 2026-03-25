@@ -1,7 +1,7 @@
 // Nhập các icon cần thiết từ lucide-react để minh họa trạng thái và thao tác
 import {
   Bell, Filter, ChevronLeft, ChevronRight,
-  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User
+  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Camera, Recycle
 } from "lucide-react";
 // Nhập các React hook
 import { useState, useEffect } from "react";
@@ -49,78 +49,116 @@ const statusLabels = {
 /**
  * MODAL XEM CHI TIẾT BÁO CÁO (VIEW MODAL)
  */
-function ViewModal({ item, statusColors, statusLabels, onClose, onEdit }) {
+function ViewModal({ item, onClose }) {
   if (!item) return null;
   
-  // Lấy URL cấu hình từ biến môi trường để hiển thị ảnh
-  const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+  // Strip /api from the URL to get the root server URL for static files
+  const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:61436").replace('/api', '');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        {/* Phần đầu Modal: Avatar người báo cáo và mã yêu cầu */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg bg-blue-100 text-blue-600`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+        {/* Nút đóng */}
+        <button 
+          onClick={onClose}
+          className="absolute top-5 right-5 z-10 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+        >
+          <X size={20} className="text-gray-500" />
+        </button>
+
+        <div className="p-8">
+          {/* Header */}
+          <div className="flex items-center space-x-4 mb-8">
+            <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center font-bold text-xl text-blue-600 shadow-sm shadow-blue-100">
               {item.citizen?.fullName?.charAt(0) || "U"}
             </div>
             <div>
-              <h3 className="text-xl font-bold text-gray-800">{item.citizen?.fullName}</h3>
-              <p className="text-xs text-gray-400">#REQ-{item.reportId}</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg">
-            <X className="w-5 h-5 text-gray-500" />
-          </button>
-        </div>
-
-        {/* Trạng thái hiện tại của báo cáo */}
-        <div className="flex justify-center mb-5">
-          <span className={`px-4 py-1.5 rounded-full text-sm font-semibold ${statusColors[item.status] || "bg-gray-100 text-gray-700"}`}>
-            {statusLabels[item.status] || item.status}
-          </span>
-        </div>
-
-        {/* Khu vực hiển thị ảnh đính kèm (nếu có) */}
-        {item.reportImages && item.reportImages.length > 0 && (
-          <div className="mb-5">
-            <p className="text-xs text-gray-400 font-medium mb-2 uppercase">Hình ảnh đính kèm</p>
-            <div className="grid grid-cols-2 gap-2">
-              {item.reportImages.map((img, idx) => (
-                <img 
-                  key={idx} 
-                  src={img.imageUrl.startsWith('http') ? img.imageUrl : `${API_BASE_URL}${img.imageUrl}`} 
-                  alt="Waste" 
-                  className="w-full h-32 object-cover rounded-xl border border-gray-100"
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Thông tin chi tiết: Loại rác, Vị trí, Thời gian */}
-        <div className="space-y-4">
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-            <Tag className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-tight">Loại rác</p>
-              <p className="text-sm font-semibold text-gray-700">{item.wasteType}</p>
+              <h3 className="text-2xl font-bold text-gray-900 leading-tight">{item.citizen?.fullName}</h3>
+              <div className="flex items-center space-x-2 mt-1">
+                <span className="text-gray-400 text-sm font-medium uppercase tracking-wider">#REQ-{item.reportId}</span>
+                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                <span className="text-gray-500 text-sm">{new Date(item.createdAt).toLocaleString('vi-VN')}</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-            <MapPin className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-tight">Vị trí báo cáo</p>
-              <p className="text-sm font-semibold text-gray-700">{item.description}</p>
-            </div>
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Cột trái: Thông tin chính */}
+            <div className="md:col-span-1 space-y-6">
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Trạng thái</p>
+                <div className="flex">
+                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold ${statusColors[item.status] || "bg-gray-100 text-gray-700"}`}>
+                    {statusLabels[item.status] || item.status}
+                  </span>
+                </div>
+              </div>
 
-          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-            <Calendar className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-tight">Thời gian</p>
-              <p className="text-sm font-semibold text-gray-700">{new Date(item.createdAt).toLocaleString('vi-VN')}</p>
+              <div>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Khu vực</p>
+                <div className="flex items-center space-x-2 text-gray-700 font-medium">
+                  <MapPin size={16} className="text-red-500" />
+                  <span className="text-sm">{item.area?.name || "Tất cả khu vực"}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Cột phải: Danh sách mục rác chi tiết */}
+            <div className="md:col-span-2">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-100 pb-2">
+                Chi tiết báo cáo ({item.wasteReportItems?.length || 0})
+              </p>
+              
+              <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                {item.wasteReportItems && item.wasteReportItems.length > 0 ? (
+                  item.wasteReportItems.map((sub, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100/50 hover:bg-gray-100/50 transition-colors">
+                      <div className="flex space-x-4">
+                        <div className="w-24 h-24 bg-white rounded-xl overflow-hidden shadow-sm border border-gray-200 flex-shrink-0">
+                          {sub.imageUrl ? (
+                            <img 
+                              src={sub.imageUrl.startsWith('http') ? sub.imageUrl : `${API_BASE_URL}${sub.imageUrl}`} 
+                              alt={sub.wasteType} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
+                              <Camera size={24} />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="bg-emerald-100 text-emerald-700 px-2.5 py-0.5 rounded-lg text-[10px] font-black uppercase tracking-wider">
+                              {sub.wasteType}
+                            </span>
+                          </div>
+                          <p className="text-gray-700 text-sm leading-relaxed line-clamp-3">
+                            {sub.description || "Không có mô tả chi tiết"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  /* Legacy view for old reports */
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 italic text-gray-500 text-sm">
+                    <div className="flex items-center space-x-3 mb-4">
+                       <Tag className="text-purple-500" size={18} />
+                       <span className="font-bold text-gray-700 not-italic">{item.wasteType}</span>
+                    </div>
+                    <p className="pl-7">{item.description}</p>
+                    
+                    {item.reportImages && item.reportImages.length > 0 && (
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                         {item.reportImages.map((img, i) => (
+                           <img key={i} src={img.imageUrl.startsWith('http') ? img.imageUrl : `${API_BASE_URL}${img.imageUrl}`} className="w-full h-24 object-cover rounded-xl" />
+                         ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

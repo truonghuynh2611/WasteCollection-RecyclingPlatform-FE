@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // Nhập các thành phần điều hướng từ thư viện React Router
 import { Link, useNavigate, useLocation } from "react-router-dom";
 // Nhập các biểu tượng minh họa từ lucide-react (Máy ảnh, Vị trí, Gửi, Lọc, Tái chế, Thùng rác...)
-import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2, Eye, X } from "lucide-react";
+import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2, Eye, X, ChevronDown, ChevronUp } from "lucide-react";
 // Nhập context xác thực để lấy thông tin công dân và trạng thái đăng nhập
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập các hàm gọi API liên quan đến báo cáo rác (Tạo mới, Lấy danh sách, Xóa)
@@ -24,9 +24,9 @@ const RANKS = [
 
 // Các loại rác hỗ trợ phân loại tại nguồn
 const WASTE_TYPES = [
-  { id: "Chất thải hữu cơ", label: "Hữu cơ", icon: "🍎" },
-  { id: "Nhựa & Kim loại", label: "Nhựa/Kim loại", icon: "🥫" },
-  { id: "Giấy & Carton", label: "Giấy/Carton", icon: "📄" },
+  { id: "Giấy", label: "Giấy", icon: "📄" },
+  { id: "Nhựa", label: "Nhựa", icon: "🗑️" },
+  { id: "Kim loại", label: "Kim loại", icon: "⚙️" },
 ];
 
 /**
@@ -125,15 +125,17 @@ function ReportWaste() {
   const [submitting, setSubmitting] = useState(false); // Trạng thái đang gửi báo cáo mới
   
   // TRẠNG THÁI FORM BÁO CÁO (FORM STATES)
-  const [selectedWasteTypes, setSelectedWasteTypes] = useState(["Nhựa"]); // Loại rác được chọn
+  const [selectedWasteTypes, setSelectedWasteTypes] = useState(["Nhựa"]); // Các loại rác đang chọn
+  const [wasteItems, setWasteItems] = useState({
+    "Nhựa": { description: "", imageFile: null, imagePreview: null }
+  }); // Chi tiết cho từng loại rác đã chọn
+  
   const [districts, setDistricts] = useState([]); // Danh sách các quận/huyện
   const [areas, setAreas] = useState([]); // Danh sách các khu vực thuộc quận/huyện được chọn
   const [selectedDistrictId, setSelectedDistrictId] = useState(user?.districtId || ""); // Quận/Huyện đang chọn
   const [selectedAreaId, setSelectedAreaId] = useState(user?.areaId || ""); // Khu vực đang chọn
   const [coords, setCoords] = useState(null); // Tọa độ (Vĩ độ, Kinh độ)
-  const [description, setDescription] = useState(""); // Ghi chú thêm
-  const [imageFile, setImageFile] = useState(null); // Tệp tin hình ảnh đã chọn
-  const [imagePreview, setImagePreview] = useState(null); // Đường dẫn ảnh để hiển thị xem trước (preview)
+  const [expandedTypes, setExpandedTypes] = useState([selectedWasteTypes[0]]); // Các loại đang mở rộng (accordion)
   
   // TRẠNG THÁI PHẢN HỒI UI (UI STATES)
   const [toast, setToast] = useState(null); // Thông báo nhanh (Toast)
@@ -156,13 +158,22 @@ function ReportWaste() {
   /**
    * Xử lý khi người dùng chọn file ảnh từ thiết bị
    */
-  const handleFileChange = (e) => {
+  /**
+   * Xử lý khi người dùng chọn file ảnh cho một loại rác cụ thể
+   */
+  const handleItemFileChange = (typeId, e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result); // Tạo preview Base64 để hiển thị lên UI ngay lập tức
+        setWasteItems(prev => ({
+          ...prev,
+          [typeId]: {
+            ...prev[typeId],
+            imageFile: file,
+            imagePreview: reader.result
+          }
+        }));
       };
       reader.readAsDataURL(file);
     }
@@ -292,22 +303,27 @@ function ReportWaste() {
       const formData = new FormData();
       formData.append("CitizenId", finalId);
       formData.append("AreaId", selectedAreaId);
-      formData.append("WasteType", selectedWasteTypes.join(", "));
-      formData.append("Description", description.trim());
       formData.append("Latitude", coords?.lat || 0);
       formData.append("Longitude", coords?.lon || 0);
       
-      if (imageFile) {
-        formData.append("ImageFile", imageFile);
-      }
+      // Gửi mảng các item rác
+      selectedWasteTypes.forEach((typeId, index) => {
+        const item = wasteItems[typeId];
+        formData.append(`Items[${index}].WasteType`, typeId);
+        formData.append(`Items[${index}].Description`, (item?.description || "").trim());
+        if (item?.imageFile) {
+          formData.append(`Items[${index}].ImageFile`, item.imageFile);
+        }
+      });
 
       const result = await createWasteReport(formData);
       showToast("Báo cáo của bạn đã được gửi thành công!", "success");
 
-      // Reset form sau khi gửi thành công về trạng thái ban đầu
-      setDescription("");
-      setImageFile(null);
-      setImagePreview(null);
+      // Reset form sau khi gửi thành công
+      setWasteItems({
+        "Nhựa": { description: "", imageFile: null, imagePreview: null }
+      });
+      setSelectedWasteTypes(["Nhựa"]);
       setCoords(null);
       
       // Tải lại danh sách lịch sử để cập nhật báo cáo mới nhất
@@ -450,37 +466,6 @@ function ReportWaste() {
             </div>
 
             <div className="space-y-4">
-              {/* PHẦN TẢI HÌNH ẢNH */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Hình ảnh hiện trường (tùy chọn)
-                </label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  id="image-upload"
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer overflow-hidden relative min-h-[160px] flex flex-col items-center justify-center"
-                >
-                  {imagePreview ? (
-                    <img
-                      src={imagePreview}
-                      alt="Preview"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <>
-                      <Camera className="mx-auto text-gray-400 mb-2" size={28} />
-                      <p className="text-sm text-gray-500">Nhấn để tải ảnh lên</p>
-                      <p className="text-xs text-gray-400 mt-1">Hỗ trợ định dạng: JPG, PNG</p>
-                    </>
-                  )}
-                </label>
-              </div>
 
               {/* PHẦN CHỌN ĐỊA ĐIỂM (QUẬN & KHU VỰC) */}
               <div className="space-y-4">
@@ -524,8 +509,8 @@ function ReportWaste() {
 
               {/* PHẦN CHỌN LOẠI RÁC */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Phân loại rác tại nguồn
+                <label className="block text-sm font-medium text-gray-700 mb-3 text-center">
+                  Chọn loại rác bạn có
                 </label>
                 <div className="grid grid-cols-3 gap-3">
                   {WASTE_TYPES.map((type) => {
@@ -536,24 +521,31 @@ function ReportWaste() {
                         type="button"
                         onClick={() => {
                           if (isSelected) {
-                            // Không cho phép bỏ chọn nếu chỉ còn 1 loại
                             if (selectedWasteTypes.length > 1) {
                               setSelectedWasteTypes(selectedWasteTypes.filter(t => t !== type.id));
+                              // Giữ lại state cũ trong wasteItems trong trường hợp người dùng lỡ tay bấm nhầm rồi bấm lại
                             }
                           } else {
                             setSelectedWasteTypes([...selectedWasteTypes, type.id]);
+                        setExpandedTypes(prev => [...prev, type.id]); // Mở rộng mục mới chọn
+                        if (!wasteItems[type.id]) {
+                              setWasteItems(prev => ({
+                                ...prev,
+                                [type.id]: { description: "", imageFile: null, imagePreview: null }
+                              }));
+                            }
                           }
                         }}
-                        className={`flex flex-col items-center p-4 rounded-xl border-2 transition-all ${
+                        className={`flex flex-col items-center p-4 rounded-2xl border-2 transition-all duration-300 ${
                           isSelected
-                            ? "border-emerald-500 bg-emerald-50"
-                            : "border-gray-200 hover:border-gray-300"
+                            ? "border-emerald-500 bg-emerald-50 shadow-sm shadow-emerald-100 scale-[1.02]"
+                            : "border-gray-100 hover:border-gray-200 hover:bg-gray-50 bg-white"
                         }`}
                       >
-                        <span className="text-2xl mb-1">{type.icon}</span>
+                        <span className="text-3xl mb-2">{type.icon}</span>
                         <span
-                          className={`text-sm font-medium ${
-                            isSelected ? "text-emerald-700" : "text-gray-700"
+                          className={`text-sm font-semibold tracking-tight ${
+                            isSelected ? "text-emerald-700" : "text-gray-600"
                           }`}
                         >
                           {type.label}
@@ -564,18 +556,94 @@ function ReportWaste() {
                 </div>
               </div>
 
-              {/* PHẦN NHẬP MÔ TẢ */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Mô tả thêm (không bắt buộc)
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={3}
-                  placeholder="Ghi chú về khối lượng hoặc loại rác cụ thể..."
-                  className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent resize-none"
-                />
+              {/* PHẦN NHẬP THÔNG SỐ CHI TIẾT CHO TỪNG LOẠI RÁC */}
+              <div className="space-y-6 pt-4">
+                {selectedWasteTypes.map((typeId) => {
+                  const typeInfo = WASTE_TYPES.find(t => t.id === typeId);
+                  const itemState = wasteItems[typeId] || { description: "", imageFile: null, imagePreview: null };
+                  const isExpanded = expandedTypes.includes(typeId) || selectedWasteTypes.length === 1;
+
+                  return (
+                    <div key={typeId} className="bg-emerald-50/50 rounded-2xl border border-emerald-100/50 overflow-hidden animate-fadeIn transition-all duration-300">
+                      {/* Header của mục - Click để thu/mở */}
+                      <div 
+                        onClick={() => {
+                          if (expandedTypes.includes(typeId)) {
+                            setExpandedTypes(expandedTypes.filter(t => t !== typeId));
+                          } else {
+                            setExpandedTypes([...expandedTypes, typeId]);
+                          }
+                        }}
+                        className="flex items-center justify-between p-4 cursor-pointer hover:bg-emerald-100/30 transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <span className="text-xl">{typeInfo?.icon}</span>
+                          <span className="font-bold text-emerald-800 uppercase text-xs tracking-wider">Thông số: {typeInfo?.label}</span>
+                        </div>
+                        <div className="text-emerald-500">
+                          {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+                        </div>
+                      </div>
+
+                      {/* Body của mục - Chỉ hiện khi isExpanded là true */}
+                      <div className={`p-5 pt-0 space-y-4 transition-all duration-300 ${isExpanded ? "block" : "hidden"}`}>
+                        <div className="border-t border-emerald-100/50 pt-4 space-y-4">
+
+                      {/* Tải ảnh cho loại rác này */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-emerald-700 uppercase mb-2 tracking-widest pl-1">
+                          Hình ảnh {typeInfo?.label}
+                        </label>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleItemFileChange(typeId, e)}
+                          className="hidden"
+                          id={`upload-${typeId}`}
+                        />
+                        <label
+                          htmlFor={`upload-${typeId}`}
+                          className="block border-2 border-dashed border-emerald-200 rounded-xl p-4 text-center hover:border-emerald-400 transition-all cursor-pointer overflow-hidden relative min-h-[120px] flex flex-col items-center justify-center bg-white/50"
+                        >
+                          {itemState.imagePreview ? (
+                            <img
+                              src={itemState.imagePreview}
+                              alt="Preview"
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <>
+                              <Camera className="mx-auto text-emerald-400 mb-2" size={24} />
+                              <p className="text-xs text-emerald-600 font-medium">Nhấn để chọn ảnh từ máy</p>
+                            </>
+                          )}
+                        </label>
+                      </div>
+
+                      {/* Nhập mô tả cho loại rác này */}
+                      <div>
+                        <label className="block text-[11px] font-bold text-emerald-700 uppercase mb-2 tracking-widest pl-1">
+                          Mô tả chi tiết
+                        </label>
+                        <textarea
+                          value={itemState.description}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setWasteItems(prev => ({
+                              ...prev,
+                              [typeId]: { ...prev[typeId], description: val }
+                            }));
+                          }}
+                          rows={2}
+                          placeholder={`Số lượng, tình trạng của rác ${typeInfo?.label.toLowerCase()}...`}
+                          className="w-full px-4 py-3 bg-white border border-emerald-100 rounded-xl focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all outline-none text-sm placeholder-gray-400 resize-none"
+                        />
+                        </div>
+                      </div>
+                    </div>
+                    </div>
+                  );
+                })}
               </div>
 
               {/* NÚT GỬI BÁO CÁO */}
@@ -782,70 +850,75 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDelete, onSave, submitti
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
-            {/* Cột trái: Hình ảnh */}
-            <div>
-              <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">Hình ảnh hiện trường</p>
-              <div className="aspect-square sm:aspect-[4/3] bg-gray-100 rounded-xl sm:rounded-2xl overflow-hidden border border-gray-100">
-                {report.reportImages && report.reportImages.length > 0 ? (
-                  <img 
-                    src={report.reportImages[0].imageurl.startsWith('http') ? report.reportImages[0].imageurl : `http://localhost:61436${report.reportImages[0].imageurl}`} 
-                    alt="Report" 
-                    className="w-full h-full object-cover"
-                  />
+            {/* Danh sách các mục rác chi tiết */}
+            <div className="md:col-span-2">
+              <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
+                Chi tiết danh mục rác ({report.wasteReportItems?.length || 0})
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {report.wasteReportItems && report.wasteReportItems.length > 0 ? (
+                  report.wasteReportItems.map((item, idx) => (
+                    <div key={idx} className="bg-gray-50 rounded-2xl p-4 flex flex-col space-y-3 border border-gray-100/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                          <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-tight">
+                            {item.wasteType}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex space-x-3">
+                        {/* Hình ảnh mục này */}
+                        <div className="w-20 h-20 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-200">
+                          {item.imageUrl ? (
+                            <img 
+                              src={item.imageUrl.startsWith('http') ? item.imageUrl : `http://localhost:61436${item.imageUrl}`} 
+                              alt={item.wasteType} 
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-gray-300">
+                              <Camera size={16} />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Mô tả mục này */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-gray-500 text-[10px] font-bold uppercase mb-1">Thông số / Mô tả</p>
+                          <p className="text-gray-700 text-sm line-clamp-3 leading-snug">
+                            {item.description || "Không có mô tả chi tiết"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
                 ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
-                    <Camera size={40} className="mb-2 opacity-20" />
-                    <span className="text-sm">Không có ảnh</span>
+                  /* Hiển thị cũ nếu là báo cáo đời cũ không có items */
+                  <div className="sm:col-span-2 bg-gray-50 rounded-2xl p-6 flex space-x-6 items-start">
+                    <div className="w-32 h-32 bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 flex-shrink-0">
+                      {report.reportImages && report.reportImages.length > 0 ? (
+                        <img 
+                          src={report.reportImages[0].imageurl.startsWith('http') ? report.reportImages[0].imageurl : `http://localhost:61436${report.reportImages[0].imageurl}`} 
+                          alt="Report" 
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                          <Camera size={24} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Thông tin chung (Legacy)</p>
+                      <p className="font-bold text-gray-800 mb-1">{report.wasteType}</p>
+                      <p className="text-gray-600 text-sm italic">{report.description || "Không có mô tả"}</p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Cột phải: Thông tin */}
-            <div className="space-y-4 sm:space-y-6">
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Trạng thái hiện tại</p>
-                <div className="flex">
-                   <span className="bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] sm:text-xs font-bold border border-emerald-100">
-                      {report.status === 0 || report.status === "Pending" ? "Đang chờ xử lý" : 
-                       report.status === 4 || report.status === "Collected" ? "Đã hoàn thành" : report.status}
-                   </span>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Phân loại rác</p>
-                {isPending ? (
-                  <select 
-                    value={wType}
-                    onChange={(e) => setWType(e.target.value)}
-                    className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all text-sm appearance-none cursor-pointer"
-                  >
-                    <option value="Chất thải hữu cơ">Chất thải hữu cơ</option>
-                    <option value="Nhựa & Kim loại">Nhựa & Kim loại</option>
-                    <option value="Giấy & Carton">Giấy & Carton</option>
-                  </select>
-                ) : (
-                  <p className="text-gray-700 font-medium">{report.wasteType}</p>
-                )}
-              </div>
-
-              <div>
-                <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Mô tả / Ghi chú</p>
-                {isPending ? (
-                  <textarea 
-                    value={desc}
-                    onChange={(e) => setDesc(e.target.value)}
-                    rows={2}
-                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none transition-all resize-none text-sm"
-                  />
-                ) : (
-                  <p className="text-gray-600 text-sm italic">{report.description || "Không có mô tả"}</p>
-                )}
-              </div>
-            </div>
-          </div>
 
           {/* Chân modal: Nút hành động */}
           {isPending && (
