@@ -65,11 +65,7 @@ export default function AreaManagement() {
     const hasMainTeam = targetArea?.teams?.some(t => t.type === 0);
 
     if (teamToAssign?.type === 0 && hasMainTeam) {
-      if (!window.confirm(`Khu vực này đã có đội chính. Bạn có muốn chuyển đội "${teamToAssign.name}" thành Đội phụ để gán vào đây không?`)) {
-        return;
-      }
-      
-      // Chuyển thành đội phụ trước khi gán
+      // Tự động chuyển thành đội phụ mà không cần hỏi
       try {
         const updateRes = await updateTeam(teamId, { 
           name: teamToAssign.name,
@@ -297,25 +293,13 @@ export default function AreaManagement() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
-                              const hasMain = area.teams?.some(t => t.type === 0);
-                              setAssigningAreaId(area.areaId);
-                              setNewTeamType(hasMain ? 1 : 0);
-                              setShowCreateTeamModal(true);
-                            }}
-                            className="flex items-center gap-1 text-xs font-bold text-green-600 hover:text-green-700 bg-green-50 px-2 py-1 rounded-lg transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
-                            {area.teams?.some(t => t.type === 0) ? "Tạo Đội phụ" : "Tạo Đội mới"}
-                          </button>
-                          <button
-                            onClick={() => {
                               setAssigningAreaId(area.areaId);
                               setShowAssignModal(true);
                             }}
                             className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
                           >
                             <UserPlus className="w-3 h-3" />
-                            {area.teams?.some(t => t.type === 0) ? "Gán Đội phụ" : "Gán Đội"}
+                            {area.teams?.some(t => t.type === 0) ? "Thêm Đội hỗ trợ" : "Thêm Đội"}
                           </button>
                         </div>
                       </div>
@@ -340,7 +324,7 @@ export default function AreaManagement() {
                                     <span className={`text-sm font-black ${(team.totalReports || 0) >= 5 ? 'text-red-500' : 'text-gray-700'}`}>
                                       {team.totalReports || 0}
                                     </span>
-                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Reports</span>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Đang xử lý</span>
                                   </div>
                                   {(team.totalReports || 0) >= 5 && team.type === 0 && (
                                     <p className="text-[9px] text-red-500 font-bold animate-pulse mt-0.5 uppercase">Quá tải - Chuyển phụ</p>
@@ -493,7 +477,7 @@ export default function AreaManagement() {
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <Users className="w-5 h-5 text-indigo-600" />
-                Gán Đội vào khu vực
+                Thêm Đội vào khu vực
               </h3>
               <button onClick={() => setShowAssignModal(false)} className="p-1.5 hover:bg-gray-100 rounded-lg">
                 <X className="w-5 h-5 text-gray-500" />
@@ -532,7 +516,7 @@ export default function AreaManagement() {
                             : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm shadow-indigo-100"
                           }`}
                       >
-                        {team.areaId === assigningAreaId ? "Đã ở đây" : "Gán"}
+                        {team.areaId === assigningAreaId ? "Đã ở đây" : "Thêm"}
                       </button>
                     </div>
                   ))}

@@ -131,7 +131,7 @@ export default function TeamManagement() {
         collectorId: collectorId
       });
       if (res.success) {
-        toast.success("Gán thành viên thành công");
+        toast.success("Thêm thành viên thành công");
         setShowAssignModal(false);
         fetchData();
       }
@@ -226,7 +226,7 @@ export default function TeamManagement() {
                         onClick={() => handleOpenAssignModal(team)}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
                       >
-                        <UserPlus className="w-3 h-3" /> Gán thành viên
+                        <UserPlus className="w-3 h-3" /> Thêm thành viên
                       </button>
                     </div>
 
@@ -260,7 +260,7 @@ export default function TeamManagement() {
                       </div>
                     ) : (
                       <div className="text-center py-6">
-                        <p className="text-sm text-gray-400 italic">Đội chưa có thành viên. Hãy gán người thu gom vào đội này.</p>
+                        <p className="text-sm text-gray-400 italic">Đội chưa có thành viên. Hãy thêm người thu gom vào đội này.</p>
                       </div>
                     )}
                   </div>
@@ -379,7 +379,7 @@ export default function TeamManagement() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-8 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">Gán thành viên vào đội</h3>
+                <h3 className="text-xl font-bold text-gray-800">Thêm thành viên vào đội</h3>
                 <p className="text-sm text-gray-500 mt-1">{assignTargetTeam?.name}</p>
               </div>
               <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -423,14 +423,14 @@ export default function TeamManagement() {
                         onClick={() => handleAssignMember(member.collectorId)}
                         className="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-xs font-bold transition-all opacity-100 md:opacity-0 group-hover:opacity-100"
                       >
-                        Gán vào đội
+                        Thêm vào đội
                       </button>
                     </div>
                   ))}
 
                 {allCollectors.filter(c => c.teamId !== assignTargetTeam?.teamId).length === 0 && (
                   <div className="text-center py-10 text-gray-400 italic text-sm">
-                    Không có nhân viên khả dụng để gán.
+                    Không có nhân viên khả dụng để thêm.
                   </div>
                 )}
               </div>
