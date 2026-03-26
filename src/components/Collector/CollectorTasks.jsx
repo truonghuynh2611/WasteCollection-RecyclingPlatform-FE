@@ -51,14 +51,28 @@ export default function CollectorTasks() {
     try {
       setLoading(true);
       const res = await taskService.getCollectorTasks();
+      console.log("Dữ liệu nhiệm vụ từ API:", res);
       // Chuẩn hóa trạng thái từ số sang chữ nếu cần
       const normalizedData = (Array.isArray(res) ? res : []).map(t => {
         let s = t.status;
-        if (s === "0" || s === 0) s = "Chờ";
-        else if (s === "1" || s === 1) s = "Đang thu gom";
-        else if (s === "2" || s === 2 || s === "Collected") s = "Hoàn thành";
+        // Chuẩn hóa trạng thái
+        if (s === "0" || s === 0 || s === "Pending") s = "Chờ";
+        else if (s === "1" || s === 1 || s === "Accepted") s = "Đang thu gom";
+        else if (s === "2" || s === 2 || s === "Assigned") s = "Đang thu gom"; // Assigned should be "Đang thu gom" for collector? 
+        else if (s === "3" || s === 3 || s === "OnTheWay") s = "Đang thu gom";
+        else if (s === "4" || s === 4 || s === "Collected") s = "Hoàn thành";
         else if (s === "6" || s === 6 || s === "ReportedByTeam") s = "Đang chờ admin xác nhận";
-        return { ...t, status: s };
+        
+        return { 
+          ...t, 
+          status: s,
+          id: t.reportId,
+          address: t.address || t.area || t.note || "N/A",
+          area: t.area || "N/A",
+          description: t.note || t.description || "",
+          time: t.createdAt ? new Date(t.createdAt).toLocaleString("vi-VN") : "N/A",
+          type: t.wasteType || "Rác thải"
+        };
       });
       setTasks(normalizedData);
     } catch (err) {
@@ -90,7 +104,8 @@ export default function CollectorTasks() {
    */
   const filteredTasks = tasks.filter(t => {
     const matchesTab = activeTab === "Tất cả" || t.status === activeTab;
-    const matchesSearch = t.address.toLowerCase().includes(searchQuery.toLowerCase());
+    const address = t.address || "";
+    const matchesSearch = address.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
@@ -287,8 +302,11 @@ export default function CollectorTasks() {
               {/* Thông tin chính của nhiệm vụ */}
               <div className="space-y-6 mb-8">
                 <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Địa chỉ thu gom</p>
-                  <p className="text-xl font-bold text-gray-800 leading-tight">{selectedTask.address}</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2">Vị trí thu gom (Khu vực)</p>
+                  <p className="text-xl font-bold text-gray-800 leading-tight">{selectedTask.area || selectedTask.address}</p>
+                  {selectedTask.description && (
+                    <p className="mt-2 text-sm text-gray-500 italic">"{selectedTask.description}"</p>
+                  )}
                 </div>
 
                 {/* Các chỉ số phụ dạng Grid */}

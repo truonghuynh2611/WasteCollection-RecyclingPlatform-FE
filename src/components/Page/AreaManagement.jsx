@@ -32,6 +32,7 @@ export default function AreaManagement() {
   const [newTeamName, setNewTeamName] = useState("");
   const [newTeamType, setNewTeamType] = useState(0); // 0: Main, 1: Support
   const [unassigningTeam, setUnassigningTeam] = useState(null);
+  const [assignTeamType, setAssignTeamType] = useState(0); // 0: Main, 1: Support
 
   useEffect(() => {
     fetchInitialData();
@@ -60,27 +61,8 @@ export default function AreaManagement() {
   };
 
   const handleAssignTeam = async (teamId) => {
-    const teamToAssign = allTeams.find(t => t.teamId === teamId);
-    const targetArea = areas.find(a => a.areaId === assigningAreaId);
-    const hasMainTeam = targetArea?.teams?.some(t => t.type === 0);
-
-    if (teamToAssign?.type === 0 && hasMainTeam) {
-      // Tự động chuyển thành đội phụ mà không cần hỏi
-      try {
-        const updateRes = await updateTeam(teamId, { 
-          name: teamToAssign.name,
-          type: 1 
-        });
-        if (!updateRes.success) {
-          return toast.error("Không thể chuyển loại đội: " + updateRes.message);
-        }
-      } catch (error) {
-        return toast.error("Lỗi khi chuyển loại đội");
-      }
-    }
-
     try {
-      const res = await assignTeamToArea(teamId, assigningAreaId);
+      const res = await assignTeamToArea(teamId, assigningAreaId, assignTeamType);
       if (res.success) {
         toast.success("Gán đội vào khu vực thành công");
         setShowAssignModal(false);
@@ -503,9 +485,36 @@ export default function AreaManagement() {
                 />
               </div>
 
+              <div className="mb-6">
+                <label className="block text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Chọn loại đội khi gán</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setAssignTeamType(0)}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all border ${assignTeamType === 0 
+                      ? 'bg-emerald-50 border-emerald-500 text-emerald-700' 
+                      : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                  >
+                    Đội Chính
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAssignTeamType(1)}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all border ${assignTeamType === 1 
+                      ? 'bg-amber-50 border-amber-500 text-amber-700' 
+                      : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                  >
+                    Đội Phụ
+                  </button>
+                </div>
+              </div>
+
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                 {allTeams
-                  .filter(t => t.name.toLowerCase().includes(teamSearch.toLowerCase()))
+                  .filter(t => 
+                    t.name.toLowerCase().includes(teamSearch.toLowerCase()) && 
+                    (!t.areaId || t.areaId === assigningAreaId)
+                  )
                   .map(team => (
                     <div
                       key={team.teamId}

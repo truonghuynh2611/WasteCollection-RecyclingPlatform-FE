@@ -15,7 +15,7 @@ export default function TeamManagement() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
-  const [formData, setFormData] = useState({ name: "", areaId: "", type: 0 }); // 0: Main, 1: Support
+  const [formData, setFormData] = useState({ name: "" });
 
   // New state for member assignment
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -46,34 +46,14 @@ export default function TeamManagement() {
   const handleOpenModal = (team = null) => {
     setEditingTeam(team);
     setFormData({
-      name: team ? team.name : "",
-      areaId: team ? team.areaId : (areas.length > 0 ? areas[0].areaId : ""),
-      type: team ? (team.type !== undefined ? team.type : 0) : 0
+      name: team ? team.name : ""
     });
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Kiểm tra giới hạn: 1 Đội chính và 1 Đội hỗ trợ mỗi khu vực
-    const existingTeamsInArea = teams.filter(t => t.areaId === parseInt(formData.areaId));
-    
-    if (formData.type === 0) {
-      const existingMain = existingTeamsInArea.find(t => t.type === 0 && (!editingTeam || t.teamId !== editingTeam.teamId));
-      if (existingMain) {
-        toast.error(`Khu vực này đã có đội chính (${existingMain.name}).`);
-        return;
-      }
-    } else if (formData.type === 1) {
-      const existingSupport = existingTeamsInArea.find(t => t.type === 1 && (!editingTeam || t.teamId !== editingTeam.teamId));
-      if (existingSupport) {
-        toast.error(`Khu vực này đã có đội hỗ trợ (${existingSupport.name}).`);
-        return;
-      }
-    }
-
     if (!formData.name.trim()) return toast.error("Vui lòng nhập tên đội");
-    if (!formData.areaId) return toast.error("Vui lòng chọn khu vực");
 
     try {
       if (editingTeam) {
@@ -209,13 +189,14 @@ export default function TeamManagement() {
                       <div>
                         <h3 className="text-xl font-bold text-gray-800">{team.name}</h3>
                         <div className="flex items-center gap-2 mt-1">
-                          <MapPin className="w-3.5 h-3.5 text-gray-400" />
                           <span className="text-xs text-gray-500 font-medium">
-                            #{team.teamId} • {team.areaName || (team.areaId ? `Area ID: ${team.areaId}` : "Chưa gán khu vực")}
+                            #{team.teamId} • {team.areaName || "Chưa gán khu vực"}
                           </span>
-                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${team.type === 1 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                            {team.type === 1 ? 'Đội Phụ' : 'Đội Chính'}
-                          </span>
+                          {team.areaId && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${team.type === 1 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {team.type === 1 ? 'Đội Phụ' : 'Đội Chính'}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -333,49 +314,6 @@ export default function TeamManagement() {
                   />
                 </div>
 
-                <div>
-                   <label className="block text-sm font-semibold text-gray-700 mb-2">Loại Đội</label>
-                   <div className="grid grid-cols-2 gap-3">
-                     <button
-                       type="button"
-                       onClick={() => setFormData({ ...formData, type: 0 })}
-                       className={`py-3 rounded-2xl text-sm font-bold transition-all border ${formData.type === 0 
-                         ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm shadow-emerald-100' 
-                         : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50'}`}
-                     >
-                       Đội Chính
-                     </button>
-                     <button
-                       type="button"
-                       onClick={() => setFormData({ ...formData, type: 1 })}
-                       className={`py-3 rounded-2xl text-sm font-bold transition-all border ${formData.type === 1 
-                         ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-sm shadow-amber-100' 
-                         : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50'}`}
-                     >
-                       Đội Phụ
-                     </button>
-                   </div>
-                   <p className="mt-2 text-[11px] text-gray-400 italic">
-                     * Đội chính xử lý tối đa 5 report, sau đó sẽ chuyển cho đội phụ.
-                   </p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Khu vực quản lý</label>
-                  <div className="relative">
-                    <select
-                      className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                      value={formData.areaId}
-                      onChange={e => setFormData({ ...formData, areaId: e.target.value })}
-                    >
-                      <option value="">Chọn khu vực</option>
-                      {areas.map(area => (
-                        <option key={area.areaId} value={area.areaId}>{area.name}</option>
-                      ))}
-                    </select>
-                    <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                  </div>
-                </div>
 
                 <div className="flex gap-3 pt-4">
                   <button

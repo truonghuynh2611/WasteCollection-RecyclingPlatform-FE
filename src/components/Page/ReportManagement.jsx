@@ -1,7 +1,7 @@
 // Nhập các icon cần thiết từ lucide-react để minh họa trạng thái và thao tác
 import {
   Bell, Filter, ChevronLeft, ChevronRight,
-  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Users, Camera, Recycle
+  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Users, Camera, Recycle, Eye
 } from "lucide-react";
 // Nhập các React hook
 import { useState, useEffect } from "react";
@@ -60,7 +60,7 @@ function ViewModal({ item, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-5xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
         {/* Nút đóng */}
         <button 
           onClick={onClose}
@@ -73,10 +73,12 @@ function ViewModal({ item, onClose }) {
           {/* Header */}
           <div className="flex items-center space-x-4 mb-8">
             <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center font-bold text-xl text-blue-600 shadow-sm shadow-blue-100">
-              {item.citizen?.fullName?.charAt(0) || "U"}
+              {(item.citizen?.user?.fullName || item.citizen?.fullName || "U").charAt(0)}
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900 leading-tight">{item.citizen?.fullName}</h3>
+              <h3 className="text-2xl font-bold text-gray-900 leading-tight">
+                {item.citizen?.user?.fullName || item.citizen?.fullName || "Người dùng ẩn danh"}
+              </h3>
               <div className="flex items-center space-x-2 mt-1">
                 <span className="text-gray-400 text-sm font-medium uppercase tracking-wider">#REQ-{item.reportId}</span>
                 <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
@@ -125,6 +127,24 @@ function ViewModal({ item, onClose }) {
                 Chi tiết báo cáo ({item.wasteReportItems?.length || 0})
               </p>
               
+              {(!item.wasteReportItems || item.wasteReportItems.length === 0) && (
+                <div className="bg-emerald-50 rounded-2xl p-6 border border-emerald-100 shadow-sm">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm border border-emerald-100 flex-shrink-0">
+                      <Recycle size={24} />
+                    </div>
+                    <div>
+                      <span className="inline-block bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider mb-2">
+                        {item.wasteType || "Loại rác chung"}
+                      </span>
+                      <p className="text-gray-700 text-sm leading-relaxed">
+                        {item.description || "Không có mô tả chi tiết"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                 {item.wasteReportItems && item.wasteReportItems.length > 0 && 
                   item.wasteReportItems.map((sub, idx) => (
@@ -164,6 +184,14 @@ function ViewModal({ item, onClose }) {
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-100 pb-2">
                     Hình ảnh minh chứng
                   </p>
+                  
+                  {item.collectorNote && (
+                    <div className="mb-4 p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-indigo-400 mb-1">Ghi chú từ đội thu gom</p>
+                      <p className="text-sm text-indigo-700 italic">"{item.collectorNote}"</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {item.reportImages.map((img, i) => (
                       <div key={i} className="relative group">

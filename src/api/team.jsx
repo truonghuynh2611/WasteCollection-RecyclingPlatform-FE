@@ -100,8 +100,8 @@ export const removeCollectorFromTeam = async (data) => {
 /**
  * Chỉ định Đội quản lý Khu vực
  */
-export const assignTeamToArea = async (teamId, areaId) => {
-    const response = await axiosClient.post(`/Team/${teamId}/assign-area/${areaId}`);
+export const assignTeamToArea = async (teamId, areaId, type) => {
+    const response = await axiosClient.post(`/Team/${teamId}/assign-area/${areaId}?type=${type}`);
     return response.data;
 };
 
