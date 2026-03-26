@@ -10,7 +10,10 @@ import {
   CheckCircle,
   AlertCircle,
   Mail,
+  ArrowRight,
+  Leaf
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 // Nhập context quản lý xác thực và danh sách Role
 import { useAuth, ROLES } from "../../contexts/AuthContext";
 // Nhập hàm gọi API đăng nhập
@@ -113,141 +116,175 @@ function Login() {
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden">
-      {/* PHẦN BÊN TRÁI: Banner hình ảnh và giới thiệu (Ẩn trên mobile) */}
-      <div
-        className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 text-white relative overflow-hidden"
-        style={{
-          backgroundImage:
-            "url(https://images.pexels.com/photos/3962286/pexels-photo-3962286.jpeg?auto=compress&cs=tinysrgb&w=1920)",
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-        }}
-      >
-        {/* Lớp phủ màu xanh Gradient để làm nổi bật chữ */}
-        <div className="absolute inset-0 bg-gradient-to-r from-emerald-900/95 to-emerald-800/85"></div>
+    <div className="min-h-screen bg-[#05110d] flex items-center justify-center p-4 relative overflow-hidden font-['Inter',sans-serif]">
+      {/* Dynamic Background Elements */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px] animate-pulse delay-700"></div>
 
-        {/* Logo và tên thương hiệu */}
-        <div className="relative z-10">
-          <div className="flex items-center space-x-2 mb-16">
-            <div className="bg-emerald-400 text-emerald-900 p-2 rounded-lg">
-              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" />
-              </svg>
+      <div className="w-full max-w-[1100px] h-[700px] bg-[#0c1d18]/40 backdrop-blur-2xl rounded-[2.5rem] border border-white/5 shadow-[0_32px_120px_-20px_rgba(0,0,0,0.5)] flex overflow-hidden">
+        
+        {/* Left Side: Creative Branding */}
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/20 to-transparent"></div>
+          
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="relative z-10 flex items-center gap-3"
+          >
+            <div className="w-12 h-12 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Leaf className="w-6 h-6 text-[#05110d]" />
             </div>
-            <span className="text-2xl font-bold">Waste Management VN</span>
-          </div>
-        </div>
+            <span className="text-xl font-black text-white tracking-tight">WASTE<span className="text-emerald-400">CONNECT</span></span>
+          </motion.div>
 
-        {/* Nội dung giới thiệu và thông số thống kê */}
-        <div className="relative z-10">
-          <h1 className="text-5xl font-bold mb-6 leading-tight">
-            Kết nối cộng đồng –
-            <br />
-            <span className="text-emerald-400">Tái chế tương lai</span>
-          </h1>
-          <p className="text-lg text-white/80 leading-relaxed max-w-md mb-12">
-            Nền tảng kết nối trực tiếp giữa người dân và doanh nghiệp thu gom
-            rác thải tái chế từ nhân, cùng nhau xây dựng môi trường bền vững.
-          </p>
-
-          <div className="grid grid-cols-3 gap-6">
-            <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">100+</div>
-              <p className="text-sm text-white/70">Khu vực thu gom</p>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">50.000+</div>
-              <p className="text-sm text-white/70">Người tham gia</p>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-emerald-400 mb-2">10.000+</div>
-              <p className="text-sm text-white/70">Quà tặng đã trao</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* PHẦN BÊN PHẢI: Form đăng nhập chính */}
-      <div className="w-full lg:w-1/2 flex flex-col justify-center px-4 sm:px-8 lg:px-12 py-8 lg:py-12 bg-white overflow-y-auto">
-        <div className="max-w-md mx-auto w-full">
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Đăng nhập hệ thống</h2>
-            <p className="text-gray-600">Dành cho Doanh nghiệp, nhân viên thu gom và người dân</p>
-          </div>
-
-          {/* Hiển thị vùng báo lỗi nếu có */}
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start space-x-3 text-animate-fadeIn">
-              <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Trường nhập Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Email đăng nhập</label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Nhập email của bạn"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
-                  disabled={loading}
-                />
-              </div>
-            </div>
-
-            {/* Trường nhập Mật khẩu */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Mật khẩu</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="••••••••"
-                  className="w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent placeholder-gray-400"
-                  disabled={loading}
-                />
-                {/* Nút bật/tắt hiển thị mật khẩu */}
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  disabled={loading}
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Nút bấm Gửi form */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full mt-6 bg-emerald-500 text-white font-medium py-3 rounded-lg hover:bg-emerald-600 shadow-md shadow-emerald-100 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          <div className="relative z-10 mt-auto">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="text-6xl font-black text-white leading-[1.1] mb-8"
             >
-              {loading ? "Đang xử lý..." : "Đăng nhập →"}
-            </button>
+              Vì một Việt Nam <br/>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">
+                Xanh, Sạch, Đẹp
+              </span>
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.4 }}
+              className="text-lg text-emerald-100/60 leading-relaxed max-w-sm mb-12"
+            >
+              Hệ thống quản lý và thu gom rác thải thông minh, kết nối cộng đồng vì môi trường bền vững.
+            </motion.p>
 
-            {/* Link chuyển hướng sang trang Đăng ký */}
-            <p className="text-center text-sm text-gray-600 pt-4">
-              Bạn chưa có tài khoản?{" "}
-              <Link
-                to="/register"
-                className="font-medium text-emerald-600 hover:text-emerald-700"
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="flex items-center gap-12"
+            >
+              {[
+                { label: 'Cộng đồng', val: '50k+' },
+                { label: 'Khu vực', val: '100+' },
+                { label: 'Đội ngũ', val: '200+' }
+              ].map((stat, i) => (
+                <div key={i}>
+                  <p className="text-2xl font-bold text-white mb-0.5">{stat.val}</p>
+                  <p className="text-xs font-medium text-emerald-500/60 uppercase tracking-widest">{stat.label}</p>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+
+          {/* Decorative Image overlay */}
+          <div className="absolute bottom-0 right-0 w-full h-full opacity-20 pointer-events-none">
+             <img 
+               src="https://images.pexels.com/photos/3962286/pexels-photo-3962286.jpeg?auto=compress&cs=tinysrgb&w=1200" 
+               className="w-full h-full object-cover"
+               alt="Nature"
+             />
+             <div className="absolute inset-0 bg-gradient-to-t from-[#0c1d18] via-transparent to-transparent"></div>
+          </div>
+        </div>
+
+        {/* Right Side: Login Form */}
+        <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-16 py-12 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.4 }}
+            className="w-full max-w-sm mx-auto"
+          >
+            <div className="mb-12">
+              <h2 className="text-3xl font-black text-white mb-2">Chào mừng trở lại</h2>
+              <p className="text-emerald-100/40 text-sm font-medium italic">Đăng nhập để bắt đầu phiên làm việc mới</p>
+            </div>
+
+            <AnimatePresence>
+              {error && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="mb-8 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-start gap-3"
+                >
+                  <AlertCircle className="h-5 w-5 text-rose-500 shrink-0 mt-0.5" />
+                  <p className="text-xs font-bold text-rose-200 leading-normal">{error}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-emerald-500/60 uppercase tracking-widest ml-1">Email của bạn</label>
+                <div className="relative group">
+                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500/30 group-focus-within:text-emerald-400 transition-colors" />
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="name@company.com"
+                    className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/5 rounded-2xl text-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white/10 focus:border-emerald-500/50 transition-all placeholder:text-white/10 font-medium"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between ml-1">
+                  <label className="block text-[10px] font-black text-emerald-500/60 uppercase tracking-widest">Mật khẩu</label>
+                  <button type="button" className="text-[10px] font-bold text-emerald-400/60 hover:text-emerald-400 uppercase tracking-widest">Quyên mật khẩu?</button>
+                </div>
+                <div className="relative group">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-emerald-500/30 group-focus-within:text-emerald-400 transition-colors" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="••••••••"
+                    className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/5 rounded-2xl text-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:bg-white/10 focus:border-emerald-500/50 transition-all placeholder:text-white/10 font-medium"
+                    disabled={loading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-white/20 hover:text-emerald-400 transition-colors"
+                    disabled={loading}
+                  >
+                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  </button>
+                </div>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                className="w-full mt-10 bg-emerald-500 hover:bg-emerald-400 text-[#0c1d18] font-black py-4 rounded-2xl shadow-[0_12px_40px_-10px_rgba(16,185,129,0.3)] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
-                Đăng ký tại đây
-              </Link>
-            </p>
-          </form>
+                {loading ? (
+                  <div className="w-5 h-5 border-2 border-[#0c1d18]/20 border-t-[#0c1d18] rounded-full animate-spin" />
+                ) : (
+                  <>ĐĂNG NHẬP <ArrowRight className="w-4 h-4" /></>
+                )}
+              </motion.button>
+
+              <p className="text-center text-xs text-white/20 pt-6">
+                Chưa có tài khoản?{" "}
+                <Link
+                  to="/register"
+                  className="font-black text-emerald-400 hover:text-emerald-300 transition-colors"
+                >
+                  ĐĂNG KÝ NGAY
+                </Link>
+              </p>
+            </form>
+          </motion.div>
         </div>
       </div>
     </div>

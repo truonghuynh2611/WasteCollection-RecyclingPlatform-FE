@@ -19,9 +19,8 @@ import ProtectedRoute from "./components/Routes/ProtectedRoute.jsx";
 import ReportManagement from "./components/Page/ReportManagement.jsx";
 import UserManagement from "./components/Page/UserManagement.jsx";
 import CollectorManagement from "./components/Page/CollectorManagement.jsx";
-import AreaManagement from "./components/Page/AreaManagement.jsx";
+import LocationManagement from "./components/Page/LocationManagement.jsx";
 import TeamManagement from "./components/Page/TeamManagement.jsx";
-import DistrictManagement from "./components/Page/DistrictManagement.jsx";
 import VoucherManagement from "./components/Page/VoucherManagement.jsx";
 import CollectorLayout from "./components/Collector/CollectorLayout.jsx";
 import CollectorDashboard from "./components/Collector/CollectorDashboard.jsx";
@@ -197,10 +196,10 @@ function App() {
                     }
                   />
                   <Route
-                    path="/areaManagement"
+                    path="/locationManagement"
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
-                        <AreaManagement />
+                        <LocationManagement />
                       </ProtectedRoute>
                     }
                   />
@@ -209,14 +208,6 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
                         <TeamManagement />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/districtManagement"
-                    element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
-                        <DistrictManagement />
                       </ProtectedRoute>
                     }
                   />

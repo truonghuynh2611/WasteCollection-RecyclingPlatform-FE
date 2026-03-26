@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
 import { getWasteReportsByCollector, confirmWasteReport, processWasteReport } from "../../api/waste";
+import { getCollectorDashboardStats } from "../../api/dashboard";
 import { toast } from "react-hot-toast";
 
 const statusStyle = {
@@ -31,40 +32,59 @@ export default function CollectorDashboard() {
     completedToday: 0,
     processing: 0,
     totalMonth: 0,
-    rating: "4.8/5"
+    rating: "4.8/5",
+    teamName: "N/A"
   });
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (user?.collectorId) {
-      fetchTasks();
+      fetchData();
     }
   }, [user]);
 
-  const fetchTasks = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const res = await getWasteReportsByCollector(user.collectorId);
-      // Backend returns raw list, we wrap in success if needed or use directly
-      const data = res.success ? res.data : res;
-      setTasks(Array.isArray(data) ? data : []);
+      setError(null); // Reset error on new fetch
       
-      // Calculate basic stats
-      const today = new Date().toDateString();
-      const completed = data.filter(t => t.status === "Collected" && new Date(t.createdAt).toDateString() === today).length;
-      const processing = data.filter(t => t.status === "Assigned" || t.status === "OnTheWay").length;
+      // Lấy UserID thực tế từ localStorage hoặc Context
+      const storedUser = JSON.parse(localStorage.getItem('user'));
+      const userId = user?.id || storedUser?.id;
+
+      if (!userId) {
+        console.warn("CollectorDashboard: No user ID found.");
+        setLoading(false);
+        return;
+      }
+
+      // Fetch stats and tasks in parallel
+      const [statsRes, reportsRes] = await Promise.all([
+        getCollectorDashboardStats(),
+        getWasteReportsByCollector(user.collectorId) // Assuming this is the correct function for tasks
+      ]);
+
+      const reportsData = reportsRes.success ? reportsRes.data : reportsRes;
+      setTasks(Array.isArray(reportsData) ? reportsData : []);
       
-      setStats(prev => ({
-        ...prev,
-        completedToday: completed,
-        processing: processing,
-        totalMonth: data.filter(t => t.status === "Collected").length
-      }));
+      if (statsRes) {
+        setStats({
+          completedToday: statsRes.teamCompletedToday ?? statsRes.TeamCompletedToday ?? 0,
+          processing: statsRes.myAssignedTasks ?? statsRes.MyAssignedTasks ?? 0,
+          totalMonth: statsRes.teamTotalCompleted ?? statsRes.TeamTotalCompleted ?? 0,
+          rating: "4.8/5", // Static for now
+          teamName: statsRes.teamName ?? statsRes.TeamName ?? "N/A"
+        });
+      }
     } catch (error) {
-      toast.error("Không thể tải danh sách công việc");
+      console.error("Dashboard error:", error);
+      toast.error("Không thể tải dữ liệu bảng điều khiển");
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchTasks = () => fetchData(); // Alias for compatibility
 
   const handleConfirm = async (reportId) => {
     try {
@@ -181,10 +201,10 @@ export default function CollectorDashboard() {
                   {tasks.map((task) => (
                     <tr key={task.reportId} className="group hover:bg-gray-50 transition-colors">
                       <td className="py-4">
-                        <p className="text-sm font-bold text-gray-800">{task.fullName || "Người dùng"}</p>
+                        <p className="text-sm font-bold text-gray-800">{task.citizen?.fullName || "Người dùng"}</p>
                         <div className="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5">
                           <MapPin className="w-3 h-3" />
-                          <span className="truncate max-w-[200px]">{task.address || "Chưa cập nhật địa chỉ"}</span>
+                          <span className="truncate max-w-[200px]">{task.area?.name || "Chưa cập nhật địa chỉ"}</span>
                         </div>
                       </td>
                       <td className="py-4">

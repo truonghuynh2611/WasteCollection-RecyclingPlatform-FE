@@ -54,9 +54,12 @@ export function AuthProvider({ children }) {
           if (!parsed.citizenId) {
             parsed.citizenId = parsed.CitizenId;
           }
+          if (!parsed.collectorId) {
+            parsed.collectorId = parsed.CollectorId;
+          }
           
           // Cập nhật lại LocalStorage nếu có thay đổi để đồng bộ dữ liệu
-          if (parsed.id || parsed.citizenId) {
+          if (parsed.id || parsed.citizenId || parsed.collectorId) {
              localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(parsed));
           }
         }
@@ -106,6 +109,7 @@ export function AuthProvider({ children }) {
       id: numericId,
       citizenId: userFromApi.citizenId || userFromApi.CitizenId,
       collectorId: userFromApi.collectorId || userFromApi.CollectorId,
+      collectorRole: userFromApi.collectorRole || userFromApi.CollectorRole,
       email: userFromApi.email,
       fullName: userFromApi.fullName || userFromApi.FullName || userFromApi.full_name,
       phone: userFromApi.phone,

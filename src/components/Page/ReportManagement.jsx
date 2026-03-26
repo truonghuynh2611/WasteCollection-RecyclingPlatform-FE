@@ -1,6 +1,6 @@
 import {
   Bell, Filter, ChevronLeft, ChevronRight,
-  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Camera, Recycle, Eye, Users
+  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Camera, Recycle, Eye, Users, XCircle, CheckCircle2
 } from "lucide-react";
 // Nhập các React hook
 import { useState, useEffect } from "react";
@@ -12,7 +12,7 @@ import ManagerSidebar from "../Manager/ManagerSidebar";
 // Nhập context xác thực để kiểm tra vai trò người dùng
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập hàm gọi API lấy danh sách báo cáo rác
-import { getWasteReports } from "../../api/waste";
+import { getWasteReports, cancelWasteReport, verifyWasteReportCompletion } from "../../api/waste";
 import { getAllTeams, assignReportToTeam } from "../../api/team";
 // Thành phần hiển thị thông báo nhẹ (Toast)
 import Toast from "../common/Toast";
@@ -21,17 +21,19 @@ import Toast from "../common/Toast";
 const tabs = [
   { id: "all", label: "Tất cả", count: null },
   { id: "pending", label: "Chờ xử lý", count: null },
-  { id: "assigned", label: "Đã phân công", count: null },
+  { id: "assigned", label: "Chờ xác nhận", count: null },
   { id: "collecting", label: "Đang thu gom", count: null },
-  { id: "completed", label: "Đã hoàn thành", count: null },
+  { id: "reported", label: "Chờ duyệt xong", count: null },
+  { id: "completed", label: "Đã hoàn tất", count: null },
 ];
 
 // MÀU SẮC TƯƠNG ỨNG VỚI TỪNG TRẠNG THÁI (DÙNG CHO LABEL)
 const statusColors = {
-  "Pending": "bg-yellow-100 text-yellow-700",
-  "Accepted": "bg-blue-100 text-blue-700",
-  "Assigned": "bg-indigo-100 text-indigo-700",
-  "OnTheWay": "bg-purple-100 text-purple-700",
+  "Pending": "bg-gray-100 text-gray-500",
+  "Accepted": "bg-blue-100 text-blue-500",
+  "Assigned": "bg-yellow-100 text-yellow-600",
+  "OnTheWay": "bg-blue-100 text-blue-700",
+  "ReportedByTeam": "bg-orange-100 text-orange-700",
   "Collected": "bg-green-100 text-green-700",
   "Failed": "bg-red-100 text-red-700",
 };
@@ -39,10 +41,11 @@ const statusColors = {
 // NHÃN TIẾNG VIỆT CHO CÁC TRẠNG THÁI TỪ BACKEND
 const statusLabels = {
   "Pending": "Đang chờ",
-  "Accepted": "Chấp nhận",
-  "Assigned": "Đã phân công",
-  "OnTheWay": "Đang đến",
-  "Collected": "Hoàn thành",
+  "Accepted": "Đã chấp nhận",
+  "Assigned": "Chờ xác nhận",
+  "OnTheWay": "Đang thu gom",
+  "ReportedByTeam": "Chờ Admin duyệt",
+  "Collected": "Đã hoàn tất",
   "Failed": "Đã hủy",
 };
 
@@ -53,7 +56,7 @@ function ViewModal({ item, onClose }) {
   if (!item) return null;
   
   // Strip /api from the URL to get the root server URL for static files
-  const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:61436").replace('/api', '');
+  const API_BASE_URL = (import.meta.env.VITE_API_URL || "http://localhost:5000").replace('/api', '');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto" onClick={onClose}>
@@ -95,10 +98,15 @@ function ViewModal({ item, onClose }) {
               </div>
 
               <div>
-                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Khu vực</p>
-                <div className="flex items-center space-x-2 text-gray-700 font-medium">
-                  <MapPin size={16} className="text-red-500" />
-                  <span className="text-sm">{item.area?.name || "Tất cả khu vực"}</span>
+                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Vị trí thu gom</p>
+                <div className="flex items-start space-x-3 text-gray-700 font-medium">
+                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                    <MapPin size={18} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">{item.area?.district?.districtName || "—"}</p>
+                    <p className="text-xs text-gray-500">{item.area?.name || "Khu vực không tên"}</p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -208,13 +216,13 @@ function AssignModal({ item, teams, onClose, onAssign }) {
             {availableTeams.length > 0 ? (
               <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
                 {availableTeams.map(t => {
-                  const isFull = t.currentTaskCount >= 20;
+                  const isFull = t.currentTaskCount >= 5;
                   return (
                     <label 
                       key={t.teamId} 
-                      className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedTeam === t.teamId ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 hover:border-emerald-200'} ${isFull ? 'opacity-50 cursor-not-allowed border-gray-100 bg-gray-50' : ''}`}
+                      className={`flex items-center justify-between p-4 rounded-2xl border-2 cursor-pointer transition-all ${selectedTeam === t.teamId ? 'border-emerald-500 bg-emerald-50 shadow-md shadow-emerald-50' : 'border-gray-100 hover:border-emerald-200'} ${isFull ? 'opacity-50 cursor-not-allowed bg-gray-50 border-gray-200' : ''}`}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-4">
                         <input 
                           type="radio" 
                           name="teamSelection" 
@@ -222,16 +230,21 @@ function AssignModal({ item, teams, onClose, onAssign }) {
                           checked={selectedTeam === t.teamId}
                           onChange={() => !isFull && setSelectedTeam(t.teamId)}
                           disabled={isFull}
-                          className="w-5 h-5 text-emerald-500 border-gray-300 focus:ring-emerald-500 disabled:opacity-50"
+                          className="w-5 h-5 text-emerald-500 border-gray-300 focus:ring-emerald-500 disabled:opacity-50 transition-all"
                         />
                         <div>
-                          <p className="font-semibold text-gray-800">{t.name}</p>
-                          <p className="text-xs text-gray-500">Gồm {t.collectors?.length || 0} thành viên</p>
+                          <p className="font-bold text-gray-800 flex items-center gap-2">
+                            {t.name}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${t.type === 0 ? 'bg-indigo-100 text-indigo-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {t.type === 0 ? "Chính" : "Phụ"}
+                            </span>
+                          </p>
+                          <p className="text-xs text-gray-500 font-medium">{t.collectors?.length || 0} thành viên • ID: #{t.teamId}</p>
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${isFull ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
-                          {t.currentTaskCount} / 20 đơn
+                        <span className={`text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wider ${isFull ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                          Tải: {t.currentTaskCount || 0} / 5
                         </span>
                       </div>
                     </label>
@@ -354,9 +367,10 @@ export default function ReportManagement() {
   // LỌC DỮ LIỆU HIỂN THỊ DỰA TRÊN TAB ĐANG CHỌN
   const filteredData = data.filter(item => {
     if (activeTab === "all") return true;
-    if (activeTab === "pending") return item.status === "Pending";
-    if (activeTab === "assigned") return item.status === "Assigned" || item.status === "Accepted";
+    if (activeTab === "pending") return item.status === "Pending" || item.status === "Accepted";
+    if (activeTab === "assigned") return item.status === "Assigned";
     if (activeTab === "collecting") return item.status === "OnTheWay";
+    if (activeTab === "reported") return item.status === "ReportedByTeam";
     if (activeTab === "completed") return item.status === "Collected";
     return true;
   });
@@ -374,6 +388,40 @@ export default function ReportManagement() {
       }
     } catch (error) {
       showToast(error.response?.data?.message || "Lỗi khi gán đội", "error");
+    }
+  };
+
+  const handleCancelReport = async (reportId) => {
+    const reason = window.prompt("Lý do hủy yêu cầu (tùy chọn):");
+    if (reason === null) return;
+    try {
+      const res = await cancelWasteReport(reportId, reason);
+      if (res.success) {
+        showToast("Đã hủy yêu cầu thành công", "success");
+        fetchReports();
+      } else {
+        showToast(res.message || "Hủy thất bại", "error");
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || "Lỗi khi hủy yêu cầu", "error");
+    }
+  };
+
+  const handleVerifyReport = async (reportId, isApproved) => {
+    let adminNote = "";
+    if (!isApproved) {
+        adminNote = window.prompt("Lý do từ chối báo cáo này:");
+        if (adminNote === null) return;
+    }
+
+    try {
+        const res = await verifyWasteReportCompletion({ reportId, isApproved, adminNote });
+        if (res) {
+            showToast(isApproved ? "Phê duyệt hoàn thành thành công!" : "Đã từ chối báo cáo.", "success");
+            fetchReports();
+        }
+    } catch (error) {
+        showToast(error.response?.data?.message || "Lỗi khi phê duyệt", "error");
     }
   };
 
@@ -470,7 +518,7 @@ export default function ReportManagement() {
                         {new Date(req.createdAt).toLocaleDateString('vi-VN')}
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button 
                             onClick={() => setViewItem(req)}
                             title="Xem chi tiết"
@@ -485,6 +533,33 @@ export default function ReportManagement() {
                               className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
                             >
                               <UserCheck className="w-4 h-4" />
+                            </button>
+                          )}
+                          {req.status === "ReportedByTeam" && (
+                            <>
+                              <button 
+                                onClick={() => handleVerifyReport(req.reportId, true)}
+                                title="Phê duyệt hoàn thành"
+                                className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
+                              >
+                                <CheckCircle2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleVerifyReport(req.reportId, false)}
+                                title="Từ chối/Yêu cầu làm lại"
+                                className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            </>
+                          )}
+                          {(req.status === "Pending" || req.status === "Accepted" || req.status === "Assigned") && (
+                            <button 
+                              onClick={() => handleCancelReport(req.reportId)}
+                              title="Hủy yêu cầu"
+                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <XCircle className="w-4 h-4" />
                             </button>
                           )}
                         </div>

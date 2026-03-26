@@ -28,8 +28,8 @@ export const getWasteReportsByCollector = async (collectorId) => {
   return response.data;
 };
 
-export const confirmWasteReport = async (reportId, collectorId) => {
-  const response = await axiosClient.post(`/WasteReport/confirm/${reportId}?collectorId=${collectorId}`);
+export const confirmWasteReport = async (reportId) => {
+  const response = await axiosClient.post(`/WasteReport/confirm/${reportId}`);
   return response.data;
 };
 
@@ -45,5 +45,15 @@ export const deleteWasteReport = async (reportId) => {
 
 export const updateWasteReport = async (reportId, updateData) => {
   const response = await axiosClient.put(`/WasteReport/${reportId}`, updateData);
+  return response.data;
+};
+
+export const verifyWasteReportCompletion = async (verifyData) => {
+  const response = await axiosClient.post("/WasteReport/verify-completion", verifyData);
+  return response.data;
+};
+
+export const cancelWasteReport = async (reportId, reason = "") => {
+  const response = await axiosClient.post("/WasteReport/cancel-report", { reportId, reason });
   return response.data;
 };

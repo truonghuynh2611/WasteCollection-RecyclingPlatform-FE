@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 // Nhập các thành phần điều hướng từ thư viện React Router
 import { Link, useNavigate, useLocation } from "react-router-dom";
 // Nhập các biểu tượng minh họa từ lucide-react (Máy ảnh, Vị trí, Gửi, Lọc, Tái chế, Thùng rác...)
-import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2, Eye, X, ChevronDown, ChevronUp } from "lucide-react";
+import { Camera, MapPin, Send, Filter, Recycle, ArrowRight, Trash2, Eye, X, ChevronDown, ChevronUp, Calendar } from "lucide-react";
 // Nhập context xác thực để lấy thông tin công dân và trạng thái đăng nhập
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập các hàm gọi API liên quan đến báo cáo rác (Tạo mới, Lấy danh sách, Xóa)
@@ -36,28 +36,31 @@ const WASTE_TYPES = [
 const STATUS_MAP = {
   // Bản đồ cho giá trị enum số từ Backend
   0: "Đang chờ",
-  1: "Chấp nhận",
-  2: "Đã phân công",
-  3: "Đang đến",
-  4: "Hoàn thành",
+  1: "Đã chấp nhận",
+  2: "Chờ xác nhận",
+  3: "Đang thu gom",
+  4: "Đã hoàn tất",
   5: "Đã hủy",
+  6: "Chờ Admin duyệt",
   
   // Bản đồ cho tên enum chuỗi (PascalCase)
   "Pending": "Đang chờ",
-  "Accepted": "Chấp nhận",
-  "Assigned": "Đã phân công",
-  "OnTheWay": "Đang đến",
-  "Collected": "Hoàn thành",
+  "Accepted": "Đã chấp nhận",
+  "Assigned": "Chờ xác nhận",
+  "OnTheWay": "Đang thu gom",
+  "ReportedByTeam": "Chờ Admin duyệt",
+  "Collected": "Đã hoàn tất",
   "Failed": "Đã hủy",
 };
 
 // Định nghĩa màu sắc hiển thị tương ứng với từng trạng thái
 const STATUS_COLORS = {
-  "Đang chờ": "bg-amber-50 text-amber-700 border border-amber-100",
-  "Chấp nhận": "bg-blue-50 text-blue-700 border border-blue-100",
-  "Đã phân công": "bg-sky-50 text-sky-700 border border-sky-100",
-  "Đang đến": "bg-violet-50 text-violet-700 border border-violet-100",
-  "Hoàn thành": "bg-emerald-50 text-emerald-700 border border-emerald-100",
+  "Đang chờ": "bg-gray-50 text-gray-500 border border-gray-100",
+  "Đã chấp nhận": "bg-blue-50 text-blue-500 border border-blue-100",
+  "Chờ xác nhận": "bg-yellow-50 text-yellow-600 border border-yellow-100",
+  "Đang thu gom": "bg-sky-50 text-sky-700 border border-sky-100",
+  "Chờ Admin duyệt": "bg-orange-50 text-orange-600 border border-orange-100",
+  "Đã hoàn tất": "bg-emerald-50 text-emerald-700 border border-emerald-100",
   "Đã hủy": "bg-rose-50 text-rose-700 border border-rose-100",
 };
 
@@ -134,7 +137,6 @@ function ReportWaste() {
   const [areas, setAreas] = useState([]); // Danh sách các khu vực thuộc quận/huyện được chọn
   const [selectedDistrictId, setSelectedDistrictId] = useState(user?.districtId || ""); // Quận/Huyện đang chọn
   const [selectedAreaId, setSelectedAreaId] = useState(user?.areaId || ""); // Khu vực đang chọn
-  const [coords, setCoords] = useState(null); // Tọa độ (Vĩ độ, Kinh độ)
   const [expandedTypes, setExpandedTypes] = useState([selectedWasteTypes[0]]); // Các loại đang mở rộng (accordion)
   
   // TRẠNG THÁI PHẢN HỒI UI (UI STATES)
@@ -303,8 +305,6 @@ function ReportWaste() {
       const formData = new FormData();
       formData.append("CitizenId", finalId);
       formData.append("AreaId", selectedAreaId);
-      formData.append("Latitude", coords?.lat || 0);
-      formData.append("Longitude", coords?.lon || 0);
       
       // Gửi mảng các item rác
       selectedWasteTypes.forEach((typeId, index) => {
@@ -324,7 +324,6 @@ function ReportWaste() {
         "Nhựa": { description: "", imageFile: null, imagePreview: null }
       });
       setSelectedWasteTypes(["Nhựa"]);
-      setCoords(null);
       
       // Tải lại danh sách lịch sử để cập nhật báo cáo mới nhất
       const data = await getWasteReportsByCitizen(finalId);
@@ -401,7 +400,7 @@ function ReportWaste() {
    */
   const pointsDisplay = (report) => {
     const s = displayStatus(report.status);
-    if (s === "Hoàn thành") {
+    if (s === "Đã hoàn tất") {
       // Nếu có lịch sử điểm đi kèm thì cộng tổng, nếu không thì hiện mặc định +10
       if (report.pointHistories && report.pointHistories.length > 0) {
         const total = report.pointHistories.reduce((sum, ph) => sum + (ph.pointAmount || 0), 0);
@@ -850,6 +849,36 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDelete, onSave, submitti
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {/* Mục địa điểm */}
+            <div className="bg-blue-50/50 rounded-2xl p-4 border border-blue-100/50">
+              <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-2">Vị trí thu gom</p>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+                  <MapPin size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{report.area?.district?.districtName || "—"}</p>
+                  <p className="text-xs text-gray-500">{report.area?.name || "Khu vực chưa gán"}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Mục thời gian/trạng thái (Tùy chọn thêm để cân bằng layout) */}
+            <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Thời gian báo cáo</p>
+              <div className="flex items-start space-x-3">
+                <div className="p-2 bg-gray-200 text-gray-600 rounded-lg">
+                  <Calendar size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-gray-900">{new Date(report.createdAt).toLocaleDateString('vi-VN')}</p>
+                  <p className="text-xs text-gray-500">{new Date(report.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
             {/* Danh sách các mục rác chi tiết */}
             <div className="md:col-span-2">
               <p className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-2">
@@ -873,7 +902,7 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDelete, onSave, submitti
                         <div className="w-20 h-20 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-200">
                           {item.imageUrl ? (
                             <img 
-                              src={item.imageUrl.startsWith('http') ? item.imageUrl : `http://localhost:61436${item.imageUrl}`} 
+                              src={item.imageUrl.startsWith('http') ? item.imageUrl : `http://localhost:5000${item.imageUrl}`} 
                               alt={item.wasteType} 
                               className="w-full h-full object-cover"
                             />
@@ -900,7 +929,7 @@ const ReportDetailModal = ({ isOpen, onClose, report, onDelete, onSave, submitti
                     <div className="w-32 h-32 bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-200 flex-shrink-0">
                       {report.reportImages && report.reportImages.length > 0 ? (
                         <img 
-                          src={report.reportImages[0].imageurl.startsWith('http') ? report.reportImages[0].imageurl : `http://localhost:61436${report.reportImages[0].imageurl}`} 
+                          src={report.reportImages[0].imageurl.startsWith('http') ? report.reportImages[0].imageurl : `http://localhost:5000${report.reportImages[0].imageurl}`} 
                           alt="Report" 
                           className="w-full h-full object-cover"
                         />

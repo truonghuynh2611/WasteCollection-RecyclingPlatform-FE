@@ -1,9 +1,25 @@
 import axiosClient from "./axiosClient";
 
-export const getAllCollectorsForAdmin = async () => {
-    const response = await axiosClient.get("/Collector/admin/all");
-    if (response.data && response.data.success) {
-        return response.data.data;
-    }
-    throw new Error(response.data?.message || "Lỗi khi lấy danh sách nhân viên");
+/**
+ * [Leader only] Get all reports assigned to the current collector's team
+ */
+export const getLeaderTeamReports = async () => {
+  const response = await axiosClient.get("/Collector/leader/reports");
+  return response.data;
+};
+
+/**
+ * [Leader only] Update a report (only Pending reports can be updated)
+ */
+export const updateReportByLeader = async (reportId, updateData) => {
+  const response = await axiosClient.put(`/Collector/leader/reports/${reportId}`, updateData);
+  return response.data;
+};
+
+/**
+ * [Leader only] Delete a report (only Pending reports can be deleted)
+ */
+export const deleteReportByLeader = async (reportId) => {
+  const response = await axiosClient.delete(`/Collector/leader/reports/${reportId}`);
+  return response.data;
 };
