@@ -1,218 +1,227 @@
-// Nhập các icon minh họa từ thư viện lucide-react
-import { CheckCircle2, Clock, AlertCircle, TrendingUp, MapPin, Star, LogOut } from "lucide-react";
-// Nhập context xác thực và hook điều hướng
+import { useState, useEffect } from "react";
+import { 
+  CheckCircle2, Clock, AlertCircle, TrendingUp, 
+  MapPin, Star, Package, Check, ClipboardCheck 
+} from "lucide-react";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { getWasteReportsByCollector, confirmWasteReport, processWasteReport } from "../../api/waste";
+import { toast } from "react-hot-toast";
 
-/**
- * DỮ LIỆU GIẢ LẬP (MOCK DATA) CHO CÁC CHỈ SỐ THỐNG KÊ
- */
-const stats = [
-  { label: "Hoàn thành hôm nay", value: 4,  total: 6,  color: "bg-green-500", light: "bg-green-50 text-green-700", icon: CheckCircle2 },
-  { label: "Đang xử lý",         value: 1,  total: null, color: "bg-blue-500",  light: "bg-blue-50 text-blue-700",   icon: Clock },
-  { label: "Tổng tháng này",     value: 68, total: null, color: "bg-purple-500",light: "bg-purple-50 text-purple-700",icon: TrendingUp },
-  { label: "Đánh giá trung bình",value: "4.8/5", total: null, color: "bg-yellow-500", light: "bg-yellow-50 text-yellow-700", icon: Star },
-];
-
-/**
- * DANH SÁCH CÔNG VIỆC GẦN ĐÂY (MOCK DATA)
- */
-const recentTasks = [
-  { id: "TK-001", address: "123 Lê Lợi, Q.1",      area: "KV 1A", type: "Nhựa",    time: "08:00", status: "Hoàn thành", rating: 5 },
-  { id: "TK-002", address: "456 Nguyễn Huệ, Q.1",  area: "KV 1A", type: "Giấy",    time: "09:30", status: "Hoàn thành", rating: 4 },
-  { id: "TK-003", address: "789 Pasteur, Q.3",      area: "KV 1B", type: "Kim loại",time: "11:00", status: "Đang làm",   rating: null },
-  { id: "TK-004", address: "321 Hai Bà Trưng, Q.3", area: "KV 1B", type: "Nhựa",    time: "13:30", status: "Chờ",        rating: null },
-  { id: "TK-005", address: "654 Võ Văn Tần, Q.3",   area: "KV 2A", type: "Giấy",    time: "15:00", status: "Chờ",        rating: null },
-  { id: "TK-006", address: "987 CMT8, Q.3",          area: "KV 2A", type: "NGUY HẠI",time: "16:30", status: "Chờ",        rating: null },
-];
-
-/**
- * ĐỊNH NGHĨA MÀU SẮC THEO TRẠNG THÁI
- */
 const statusStyle = {
-  "Hoàn thành": "bg-green-100 text-green-700",
-  "Đang làm":   "bg-blue-100  text-blue-700",
-  "Chờ":        "bg-gray-100  text-gray-500",
+  "Pending": "bg-gray-100 text-gray-500",
+  "Assigned": "bg-blue-100 text-blue-700",
+  "OnTheWay": "bg-indigo-100 text-indigo-700",
+  "Collected": "bg-green-100 text-green-700",
+  "Failed": "bg-red-100 text-red-700",
 };
 
-/**
- * ĐỊNH NGHĨA MÀU SẮC THEO LOẠI RÁC
- */
-const typeColor = {
-  "Nhựa": "bg-purple-100 text-purple-700",
-  "Giấy": "bg-orange-100 text-orange-700",
-  "Kim loại": "bg-gray-100 text-gray-700",
-  "NGUY HẠI": "bg-red-100 text-red-700",
+const statusLabel = {
+  "Pending": "Chờ xử lý",
+  "Assigned": "Mới (Đã gán)",
+  "OnTheWay": "Đang đến",
+  "Collected": "Đã hoàn thành",
+  "Failed": "Thất bại",
 };
 
 export default function CollectorDashboard() {
   const { user } = useAuth();
-  
-  // Tính toán % hoàn thành trong ngày
-  const completed = recentTasks.filter(t => t.status === "Hoàn thành").length;
-  const total = recentTasks.length;
-  const pct = Math.round((completed / total) * 100);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    completedToday: 0,
+    processing: 0,
+    totalMonth: 0,
+    rating: "4.8/5"
+  });
+
+  useEffect(() => {
+    if (user?.collectorId) {
+      fetchTasks();
+    }
+  }, [user]);
+
+  const fetchTasks = async () => {
+    try {
+      setLoading(true);
+      const res = await getWasteReportsByCollector(user.collectorId);
+      // Backend returns raw list, we wrap in success if needed or use directly
+      const data = res.success ? res.data : res;
+      setTasks(Array.isArray(data) ? data : []);
+      
+      // Calculate basic stats
+      const today = new Date().toDateString();
+      const completed = data.filter(t => t.status === "Collected" && new Date(t.createdAt).toDateString() === today).length;
+      const processing = data.filter(t => t.status === "Assigned" || t.status === "OnTheWay").length;
+      
+      setStats(prev => ({
+        ...prev,
+        completedToday: completed,
+        processing: processing,
+        totalMonth: data.filter(t => t.status === "Collected").length
+      }));
+    } catch (error) {
+      toast.error("Không thể tải danh sách công việc");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirm = async (reportId) => {
+    try {
+      const res = await confirmWasteReport(reportId, user.collectorId);
+      if (res.success || res) {
+        toast.success("Đã xác nhận đang di chuyển đến điểm thu gom");
+        fetchTasks();
+      }
+    } catch (error) {
+      toast.error("Lỗi khi xác nhận nhiệm vụ");
+    }
+  };
+
+  const handleComplete = async (reportId) => {
+    // For now, simpler processing without a full result modal. 
+    // In a real app, you'd open a modal to select weight/actual waste type.
+    if (!window.confirm("Xác nhận đã thu gom thành công rác tại điểm này?")) return;
+    
+    try {
+      const res = await processWasteReport({
+        reportId: reportId,
+        collectorId: user.collectorId,
+        status: 3, // Collected
+        note: "Thu gom thành công"
+      });
+      if (res.success || res) {
+        toast.success("Đã hoàn thành thu gom rác!");
+        fetchTasks();
+      }
+    } catch (error) {
+      toast.error("Lỗi khi cập nhật kết quả: " + (error.response?.data?.message || ""));
+    }
+  };
+
+  const pct = tasks.length > 0 ? Math.round((stats.completedToday / tasks.length) * 100) : 0;
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* VÙNG CHỨA CÁC CARD THÔNG TIN */}
+    <div className="max-w-7xl mx-auto p-4 lg:p-8">
       <div className="mb-8">
-          
-          {/* HÀNG 1: Các chỉ số thống kê tổng quan */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            {stats.map((s, i) => {
-              const Icon = s.icon;
-              return (
-                <div key={i} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 hover:shadow-md transition-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">{s.label}</p>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.light}`}>
-                      <Icon className="w-4 h-4" />
-                    </div>
-                  </div>
-                  <p className="text-2xl font-bold text-gray-800">{s.value}</p>
-                  {/* Hiển thị thanh tiến trình nếu mục đó có tổng số (total) */}
-                  {s.total && (
-                    <div className="mt-2">
-                      <div className="flex justify-between text-[10px] text-gray-400 mb-1">
-                        <span>Tiến độ</span>
-                        <span>{s.value}/{s.total}</span>
-                      </div>
-                      <div className="h-1.5 bg-gray-100 rounded-full">
-                        <div className={`h-1.5 rounded-full ${s.color}`} style={{ width: `${(s.value/s.total)*100}%` }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+        <h1 className="text-2xl font-bold text-gray-800">Chào buổi sáng, {user?.fullName}!</h1>
+        <p className="text-gray-500">Đây là danh sách nhiệm vụ thu gom của đội bạn hôm nay.</p>
+      </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
-            {/* CARD: BIỂU ĐỒ VÒNG (Progress ring) - Tiến độ trong ngày */}
-            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 flex flex-col items-center">
-              <h2 className="text-base font-bold text-gray-800 mb-5 w-full">Tiến độ hôm nay</h2>
-
-              {/* Vẽ vòng tròn tiến độ bằng SVG */}
-              <div className="flex flex-col items-center mb-5">
-                <div className="relative w-28 h-28">
-                  <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                    {/* Vòng nền xám */}
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f3f4f6" strokeWidth="10" />
-                    {/* Vòng xanh hiển thị % thực tế */}
-                    <circle
-                      cx="50" cy="50" r="40" fill="none"
-                      stroke="#22c55e" strokeWidth="10"
-                      strokeDasharray={`${2 * Math.PI * 40 * pct / 100} ${2 * Math.PI * 40 * (100 - pct) / 100}`}
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  {/* Chữ hiển thị ở giữa vòng tròn */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-bold text-gray-800">{pct}%</span>
-                    <span className="text-[10px] text-gray-400 uppercase font-medium">Hoàn thành</span>
-                  </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        {[
+          { label: "Hoàn thành hôm nay", value: stats.completedToday, color: "bg-green-500", light: "bg-green-50 text-green-700", icon: CheckCircle2 },
+          { label: "Nhiệm vụ mới", value: stats.processing, color: "bg-blue-500", light: "bg-blue-50 text-blue-700", icon: Clock },
+          { label: "Tổng tháng này", value: stats.totalMonth, color: "bg-purple-500", light: "bg-purple-50 text-purple-700", icon: TrendingUp },
+          { label: "Đánh giá", value: stats.rating, color: "bg-yellow-500", light: "bg-yellow-50 text-yellow-700", icon: Star },
+        ].map((s, i) => {
+          const Icon = s.icon;
+          return (
+            <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-xs text-gray-400 font-bold uppercase">{s.label}</p>
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.light}`}>
+                  <Icon className="w-4 h-4" />
                 </div>
               </div>
-
-              {/* Chú thích chi tiết từng trạng thái rác */}
-              <div className="w-full space-y-2 text-sm text-gray-600">
-                {[
-                  { label: "Hoàn thành", count: completed,                       color: "bg-green-500" },
-                  { label: "Đang xử lý", count: recentTasks.filter(t=>t.status==="Đang làm").length,  color: "bg-blue-500" },
-                  { label: "Còn lại",    count: recentTasks.filter(t=>t.status==="Chờ").length,        color: "bg-gray-300" },
-                ].map(item => (
-                  <div key={item.label} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
-                    <div className="flex items-center gap-2">
-                      <span className={`w-2 h-2 rounded-full ${item.color}`} />
-                      <span>{item.label}</span>
-                    </div>
-                    <span className="font-bold text-gray-800">{item.count} nhiệm vụ</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-2xl font-bold text-gray-800">{s.value}</p>
             </div>
+          );
+        })}
+      </div>
 
-            {/* CARD: BẢNG DANH SÁCH CÔNG VIỆC TRONG NGÀY */}
-            <div className="lg:col-span-2 bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-hidden">
-              <h2 className="text-base font-bold text-gray-800 mb-5">Danh sách công việc hôm nay</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-100 text-gray-400">
-                      {["Mã", "Địa chỉ / Khu vực", "Loại rác", "Giờ", "Trạng thái", "Đánh giá"].map(h => (
-                        <th key={h} className="text-left py-2 px-2 text-[10px] font-bold uppercase tracking-widest">{h}</th>
-                      ))}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 flex flex-col items-center">
+          <h2 className="text-base font-bold text-gray-800 mb-5 w-full">Tiến độ hôm nay</h2>
+          <div className="relative w-32 h-32 mb-6">
+            <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="#f8fafc" strokeWidth="8" />
+              <circle
+                cx="50" cy="50" r="40" fill="none"
+                stroke="#10b981" strokeWidth="8"
+                strokeDasharray={`${2 * Math.PI * 40 * pct / 100} 999`}
+                strokeLinecap="round"
+                className="transition-all duration-1000"
+              />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-2xl font-bold text-gray-800">{pct}%</span>
+              <span className="text-[10px] text-gray-400 uppercase font-medium">Xong</span>
+            </div>
+          </div>
+          <div className="w-full space-y-3">
+            <div className="flex justify-between text-sm py-2 border-b border-gray-50">
+              <span className="text-gray-500">Đã hoàn thành</span>
+              <span className="font-bold text-green-600">{stats.completedToday}</span>
+            </div>
+            <div className="flex justify-between text-sm py-2 border-b border-gray-50">
+              <span className="text-gray-500">Đang chờ/xử lý</span>
+              <span className="font-bold text-blue-600">{stats.processing}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <h2 className="text-base font-bold text-gray-800 mb-5">Danh sách công việc</h2>
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="py-10 text-center text-gray-400">Đang tải dữ liệu...</div>
+            ) : tasks.length === 0 ? (
+              <div className="py-10 text-center text-gray-400 italic">Không có nhiệm vụ nào được gán cho đội của bạn.</div>
+            ) : (
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-50">
+                    <th className="pb-3">Khách hàng / Địa chỉ</th>
+                    <th className="pb-3">Trạng thái</th>
+                    <th className="pb-3 text-right">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {tasks.map((task) => (
+                    <tr key={task.reportId} className="group hover:bg-gray-50 transition-colors">
+                      <td className="py-4">
+                        <p className="text-sm font-bold text-gray-800">{task.fullName || "Người dùng"}</p>
+                        <div className="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5">
+                          <MapPin className="w-3 h-3" />
+                          <span className="truncate max-w-[200px]">{task.address || "Chưa cập nhật địa chỉ"}</span>
+                        </div>
+                      </td>
+                      <td className="py-4">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${statusStyle[task.status] || "bg-gray-100"}`}>
+                          {statusLabel[task.status] || task.status}
+                        </span>
+                      </td>
+                      <td className="py-4 text-right">
+                        {task.status === "Assigned" && (
+                          <button
+                            onClick={() => handleConfirm(task.reportId)}
+                            className="bg-indigo-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-indigo-700 transition-all shadow-sm flex items-center gap-1 ml-auto"
+                          >
+                            <ClipboardCheck className="w-3.5 h-3.5" />
+                            Xác nhận
+                          </button>
+                        )}
+                        {task.status === "OnTheWay" && (
+                          <button
+                            onClick={() => handleComplete(task.reportId)}
+                            className="bg-green-600 text-white px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-700 transition-all shadow-sm flex items-center gap-1 ml-auto"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            Hoàn thành
+                          </button>
+                        )}
+                        {(task.status === "Collected" || task.status === "Failed") && (
+                          <span className="text-xs text-gray-400 italic">Đã đóng</span>
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {recentTasks.map(t => (
-                      <tr key={t.id} className="hover:bg-gray-50 transition-colors group">
-                        <td className="py-3 px-2 text-[11px] text-gray-400 font-mono">#{t.id}</td>
-                        <td className="py-3 px-2">
-                          <p className="text-sm font-semibold text-gray-800 truncate max-w-[150px]">{t.address}</p>
-                          <span className="text-[10px] text-teal-600 font-bold">{t.area}</span>
-                        </td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-tight ${typeColor[t.type] || "bg-gray-100 text-gray-600"}`}>{t.type}</span>
-                        </td>
-                        <td className="py-3 px-2 text-sm text-gray-600 whitespace-nowrap">{t.time}</td>
-                        <td className="py-3 px-2">
-                          <span className={`px-2.5 py-0.5 rounded-lg text-[10px] font-bold ${statusStyle[t.status]}`}>{t.status}</span>
-                        </td>
-                        <td className="py-3 px-2">
-                          {t.rating ? (
-                            <div className="flex items-center gap-1">
-                              <Star className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
-                              <span className="text-sm font-bold text-gray-700">{t.rating}</span>
-                            </div>
-                          ) : (
-                            <span className="text-xs text-gray-300">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-
-          {/* DÒNG THỜI GIAN TUẦN HIỆN TẠI (Weekly Summary) */}
-          <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm p-6 overflow-x-auto">
-            <h2 className="text-base font-bold text-gray-800 mb-4 font-bold">Hiệu suất trong tuần</h2>
-            <div className="flex justify-between gap-2 min-w-[600px]">
-              {[
-                { day: "T2", date: "3", tasks: 5, done: 5 },
-                { day: "T3", date: "4", tasks: 6, done: 6 },
-                { day: "T4", date: "5", tasks: 4, done: 4 },
-                { day: "T5", date: "6", tasks: 7, done: 5 },
-                { day: "T6", date: "7", tasks: 6, done: 4, today: true },
-                { day: "T7", date: "8", tasks: 3, done: 0 },
-                { day: "CN", date: "9", tasks: 0, done: 0, off: true },
-              ].map(d => (
-                <div key={d.day} className={`flex-1 rounded-2xl p-4 text-center border ${d.today ? "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-100" : d.off ? "bg-gray-50 border-gray-100 opacity-60" : "bg-white border-gray-100"}`}>
-                  <p className={`text-[10px] font-bold mb-1 uppercase tracking-widest ${d.today ? "text-emerald-50" : "text-gray-400"}`}>{d.day}</p>
-                  <p className={`text-xl font-black mb-3 ${d.today ? "text-white" : "text-gray-800"}`}>{d.date}</p>
-                  {!d.off ? (
-                    <div className="w-full">
-                      {/* Thanh tiến trình mini theo ngày */}
-                      <div className={`h-1.5 rounded-full mb-2 ${d.today ? "bg-emerald-400" : "bg-gray-100"}`}>
-                        <div
-                          className={`h-1.5 rounded-full ${d.today ? "bg-white shadow-[0_0_8px_white]" : "bg-emerald-500"}`}
-                          style={{ width: d.tasks > 0 ? `${(d.done/d.tasks)*100}%` : "0%" }}
-                        />
-                      </div>
-                      <p className={`text-[10px] font-bold ${d.today ? "text-emerald-50" : "text-gray-500"}`}>{d.done}/{d.tasks}</p>
-                    </div>
-                  ) : (
-                    <span className="text-[10px] font-bold text-gray-300 uppercase italic">OFF</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+        </div>
       </div>
     </div>
   );

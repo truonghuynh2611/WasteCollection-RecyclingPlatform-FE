@@ -130,7 +130,7 @@ export default function AreaManagement() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-6xl mx-auto">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý khu vực</h1>

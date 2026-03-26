@@ -103,7 +103,12 @@ export default function TeamManagement() {
       setAssignTargetTeam(team);
       const res = await getAllCollectors();
       if (res.success) {
-        setAllCollectors(res.data);
+        // Inject current role into collectors for the modal state
+        const collectorsWithRoles = res.data.map(c => ({
+          ...c,
+          selectedRole: c.role !== undefined ? c.role : 0 // Default to member if not provided
+        }));
+        setAllCollectors(collectorsWithRoles);
       }
       setShowAssignModal(true);
     } catch (error) {
@@ -111,16 +116,18 @@ export default function TeamManagement() {
     }
   };
 
-  const handleAssignMember = async (collectorId) => {
+  const handleAssignMember = async (collectorId, role) => {
     try {
       const res = await addCollectorToTeam({
         teamId: assignTargetTeam.teamId,
-        collectorId: collectorId
+        collectorId: collectorId,
+        role: parseInt(role)
       });
       if (res.success) {
         toast.success("Gán thành viên thành công");
-        setShowAssignModal(false);
         fetchData();
+        // Update collectors list to reflect new assignment
+        handleOpenAssignModal(assignTargetTeam);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi khi gán thành viên");
@@ -136,7 +143,7 @@ export default function TeamManagement() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-6xl mx-auto">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý Đội ngũ</h1>
@@ -358,36 +365,52 @@ export default function TeamManagement() {
 
               <div className="overflow-y-auto max-h-[400px] space-y-2 pr-2 custom-scrollbar">
                 {allCollectors
-                  .filter(c =>
-                    (c.fullName.toLowerCase().includes(assignSearch.toLowerCase()) ||
-                      c.email.toLowerCase().includes(assignSearch.toLowerCase())) &&
-                    c.teamId !== assignTargetTeam?.teamId
-                  )
+                  .filter(c => {
+                    const matchesSearch = c.fullName?.toLowerCase().includes(assignSearch.toLowerCase()) || 
+                                         c.userId?.toString().includes(assignSearch);
+                    // Filter: Show all collectors.
+                    return matchesSearch;
+                  })
                   .map(member => (
                     <div key={member.collectorId} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between hover:border-indigo-300 transition-all group">
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center font-bold">
-                          {member.fullName.charAt(0)}
+                          {member.fullName?.charAt(0)}
                         </div>
                         <div>
                           <p className="text-sm font-bold text-gray-800">{member.fullName}</p>
                           <p className="text-[10px] text-gray-400 font-medium">
-                            Đang ở: {teams.find(t => t.teamId === member.teamId)?.name || 'Không có đội'}
+                            {member.teamId ? `Đang ở: ${teams.find(t => t.teamId === member.teamId)?.name || 'Đội khác'}` : 'Chưa có đội'}
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleAssignMember(member.collectorId)}
-                        className="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-xs font-bold transition-all opacity-100 md:opacity-0 group-hover:opacity-100"
-                      >
-                        Gán vào đội
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <select
+                          className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                          value={member.selectedRole}
+                          onChange={(e) => {
+                            const newRole = parseInt(e.target.value);
+                            setAllCollectors(prev => prev.map(c => 
+                              c.collectorId === member.collectorId ? { ...c, selectedRole: newRole } : c
+                            ));
+                          }}
+                        >
+                          <option value="0">Thành viên</option>
+                          <option value="1">Trưởng nhóm</option>
+                        </select>
+                        <button
+                          onClick={() => handleAssignMember(member.collectorId, member.selectedRole)}
+                          className="px-4 py-1.5 bg-indigo-600 text-white hover:bg-indigo-700 rounded-lg text-xs font-bold transition-all shadow-sm"
+                        >
+                          Gán
+                        </button>
+                      </div>
                     </div>
                   ))}
 
-                {allCollectors.filter(c => c.teamId !== assignTargetTeam?.teamId).length === 0 && (
+                {allCollectors.filter(c => c.teamId === null || c.teamId === 0).length === 0 && !assignSearch && (
                   <div className="text-center py-10 text-gray-400 italic text-sm">
-                    Không có nhân viên khả dụng để gán.
+                    Hiện tại không có nhân viên nào đang trống.
                   </div>
                 )}
               </div>

@@ -112,3 +112,11 @@ export const assignReportToTeam = async (assignmentData) => {
   const response = await axiosClient.post("/Team/assign-report", assignmentData);
   return response.data;
 };
+
+/**
+ * Khóa/Mở Khóa tài khoản Collector
+ */
+export const toggleCollectorStatus = async (collectorId) => {
+  const response = await axiosClient.patch(`/Team/collector/${collectorId}/toggle-status`);
+  return response.data;
+};

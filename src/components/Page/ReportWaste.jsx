@@ -500,7 +500,7 @@ function ReportWaste() {
                     <option value="">Chọn khu vực</option>
                     {areas.map((a) => (
                       <option key={a.areaId} value={a.areaId}>
-                        {a.areaName}
+                        {a.name || a.areaName} 
                       </option>
                     ))}
                   </select>

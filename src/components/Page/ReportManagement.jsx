@@ -1,7 +1,6 @@
-// Nhập các icon cần thiết từ lucide-react để minh họa trạng thái và thao tác
 import {
   Bell, Filter, ChevronLeft, ChevronRight,
-  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Camera, Recycle
+  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Camera, Recycle, Eye, Users
 } from "lucide-react";
 // Nhập các React hook
 import { useState, useEffect } from "react";
@@ -14,6 +13,7 @@ import ManagerSidebar from "../Manager/ManagerSidebar";
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập hàm gọi API lấy danh sách báo cáo rác
 import { getWasteReports } from "../../api/waste";
+import { getAllTeams, assignReportToTeam } from "../../api/team";
 // Thành phần hiển thị thông báo nhẹ (Toast)
 import Toast from "../common/Toast";
 
@@ -168,6 +168,102 @@ function ViewModal({ item, onClose }) {
 }
 
 /**
+ * MODAL PHÂN CÔNG ĐỘI THU GOM (ASSIGN MODAL)
+ */
+function AssignModal({ item, teams, onClose, onAssign }) {
+  const [selectedTeam, setSelectedTeam] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  if (!item) return null;
+
+  // Lọc lấy các đội thuộc cùng một khu vực (AreaId) như báo cáo rác
+  const availableTeams = teams.filter(t => t.areaId === item.areaId);
+
+  const handleSubmit = async () => {
+    if (!selectedTeam) return;
+    setIsSubmitting(true);
+    await onAssign(selectedTeam, item.reportId);
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg overflow-hidden relative" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-4 right-4 p-2 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors">
+          <X size={20} className="text-gray-500" />
+        </button>
+        <div className="p-8">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl">
+              <Users size={24} />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">Phân công cho đội</h3>
+              <p className="text-sm text-gray-500">Báo cáo mã #REQ-{item.reportId} tại {item.area?.name}</p>
+            </div>
+          </div>
+
+          <div className="mb-6 space-y-4">
+            <label className="block text-sm font-medium text-gray-700">Chọn đội thu gom khu vực này:</label>
+            {availableTeams.length > 0 ? (
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                {availableTeams.map(t => {
+                  const isFull = t.currentTaskCount >= 20;
+                  return (
+                    <label 
+                      key={t.teamId} 
+                      className={`flex items-center justify-between p-4 rounded-xl border-2 cursor-pointer transition-colors ${selectedTeam === t.teamId ? 'border-emerald-500 bg-emerald-50' : 'border-gray-100 hover:border-emerald-200'} ${isFull ? 'opacity-50 cursor-not-allowed border-gray-100 bg-gray-50' : ''}`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <input 
+                          type="radio" 
+                          name="teamSelection" 
+                          value={t.teamId} 
+                          checked={selectedTeam === t.teamId}
+                          onChange={() => !isFull && setSelectedTeam(t.teamId)}
+                          disabled={isFull}
+                          className="w-5 h-5 text-emerald-500 border-gray-300 focus:ring-emerald-500 disabled:opacity-50"
+                        />
+                        <div>
+                          <p className="font-semibold text-gray-800">{t.name}</p>
+                          <p className="text-xs text-gray-500">Gồm {t.collectors?.length || 0} thành viên</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-xs font-bold px-2 py-1 rounded-lg ${isFull ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                          {t.currentTaskCount} / 20 đơn
+                        </span>
+                      </div>
+                    </label>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="p-4 bg-yellow-50 text-yellow-700 rounded-xl border border-yellow-200 text-sm flex items-center gap-2">
+                Không có đội nào phụ trách khu vực này. Vui lòng tạo thêm đội ở Quản lý Đội thu gom.
+              </div>
+            )}
+          </div>
+
+          <div className="flex space-x-3">
+            <button onClick={onClose} className="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors">
+              Hủy
+            </button>
+            <button 
+              onClick={handleSubmit} 
+              disabled={!selectedTeam || isSubmitting}
+              className="flex-1 px-4 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 flex justify-center items-center"
+            >
+              {isSubmitting ? "Đang gán..." : "Xác nhận gán"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
  * COMPONENT CHÍNH: QUẢN LÝ BÁO CÁO (REPORT MANAGEMENT)
  */
 export default function ReportManagement() {
@@ -179,8 +275,10 @@ export default function ReportManagement() {
   // TRẠNG THÁI LOCAL
   const [activeTab, setActiveTab] = useState("all"); // Tab trạng thái đang chọn
   const [data, setData] = useState([]); // Danh sách báo cáo lấy từ API
+  const [teams, setTeams] = useState([]); // Danh sách các đội
   const [loading, setLoading] = useState(true); // Đang tải dữ liệu?
   const [viewItem, setViewItem] = useState(null); // Báo cáo đang được chọn để xem chi tiết
+  const [assignItem, setAssignItem] = useState(null); // Báo cáo đang được chọn để phân công
   
   // Quản lý thông báo nổi (Toast)
   const [toast, setToast] = useState(null);
@@ -190,7 +288,20 @@ export default function ReportManagement() {
 
   // FETCH DỮ LIỆU TỪ API KHI TRANG LOAD
   useEffect(() => {
-    const fetchReports = async () => {
+    fetchReports();
+    fetchTeams();
+  }, [location.search]);
+
+  const fetchTeams = async () => {
+    try {
+      const res = await getAllTeams();
+      if (res.success) setTeams(res.data);
+    } catch(err) {
+      console.error(err);
+    }
+  };
+
+  const fetchReports = async () => {
       try {
         setLoading(true);
         const response = await getWasteReports();
@@ -228,9 +339,7 @@ export default function ReportManagement() {
       } finally {
         setLoading(false);
       }
-    };
-    fetchReports();
-  }, [location.search]);
+  };
 
   // TỰ ĐỘNG MỞ CHI TIẾT NẾU URL CÓ ?reportId=...
   useEffect(() => {
@@ -251,6 +360,22 @@ export default function ReportManagement() {
     if (activeTab === "completed") return item.status === "Collected";
     return true;
   });
+
+  const handleAssignSubmit = async (teamId, reportId) => {
+    try {
+      const res = await assignReportToTeam({ teamId, reportId });
+      if (res.success) {
+        showToast("Phân công đội thành công", "success");
+        setAssignItem(null);
+        fetchReports(); // Làm mới lại danh sách báo cáo
+        fetchTeams(); // Cập nhật lại số lượng task count của Teams
+      } else {
+        showToast(res.message || "Gán thất bại", "error");
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || "Lỗi khi gán đội", "error");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -348,10 +473,20 @@ export default function ReportManagement() {
                         <div className="flex gap-2">
                           <button 
                             onClick={() => setViewItem(req)}
-                            className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Xem chi tiết"
+                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
                           >
-                            <UserCheck className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
+                          {req.status === "Pending" && (
+                            <button 
+                              onClick={() => setAssignItem(req)}
+                              title="Phân công đội"
+                              className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -366,9 +501,14 @@ export default function ReportManagement() {
       {/* HIỂN THỊ MODAL KHI CÓ ITEM ĐƯỢC CHỌN */}
       <ViewModal 
         item={viewItem} 
-        statusColors={statusColors} 
-        statusLabels={statusLabels} 
         onClose={() => setViewItem(null)} 
+      />
+
+      <AssignModal 
+        item={assignItem}
+        teams={teams}
+        onClose={() => setAssignItem(null)}
+        onAssign={handleAssignSubmit}
       />
       
       {/* THÔNG BÁO NỔI (TOAST) Tự định nghĩa */}

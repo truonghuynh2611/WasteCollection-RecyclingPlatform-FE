@@ -27,6 +27,8 @@ import CollectorLayout from "./components/Collector/CollectorLayout.jsx";
 import CollectorDashboard from "./components/Collector/CollectorDashboard.jsx";
 import CollectorTasks from "./components/Collector/CollectorTasks.jsx";
 import CollectorSchedule from "./components/Collector/CollectorSchedule.jsx";
+import CollectorMembers from "./components/Collector/CollectorMembers.jsx";
+import LeaderReport from "./components/Collector/LeaderReport.jsx";
 import ManagerDashboard from "./components/Manager/ManagerDashboard.jsx";
 import ManagerCollector from "./components/Manager/ManagerCollector.jsx";
 import ManagerSchedule from "./components/Manager/ManagerSchedule.jsx";
@@ -63,6 +65,10 @@ function App() {
               <Route index element={<CollectorDashboard />} />
               {/* Trang quản lý nhiệm vụ */}
               <Route path="tasks" element={<CollectorTasks />} />
+              {/* Trang danh sách thành viên trong team */}
+              <Route path="members" element={<CollectorMembers />} />
+              {/* Trang báo cáo nhiệm vụ - chỉ dành cho Leader */}
+              <Route path="report" element={<LeaderReport />} />
               {/* Trang lịch làm việc (Vẫn giữ route nhưng đã ẩn link trên Sidebar) */}
               <Route path="schedule" element={<CollectorSchedule />} />
             </Route>

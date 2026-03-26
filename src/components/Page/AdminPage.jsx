@@ -16,7 +16,7 @@ const Dashboard = () => {
       {/* NỘI DUNG CHÍNH BÊN PHẢI */}
       <div className="flex-1 flex flex-col">
         <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             
             {/* PHẦN ĐẦU: TIÊU ĐỀ VÀ LỜI CHÀO */}
             <div className="mb-8">

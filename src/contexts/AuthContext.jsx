@@ -105,6 +105,7 @@ export function AuthProvider({ children }) {
     const userToStore = {
       id: numericId,
       citizenId: userFromApi.citizenId || userFromApi.CitizenId,
+      collectorId: userFromApi.collectorId || userFromApi.CollectorId,
       email: userFromApi.email,
       fullName: userFromApi.fullName || userFromApi.FullName || userFromApi.full_name,
       phone: userFromApi.phone,

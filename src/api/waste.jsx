@@ -23,6 +23,21 @@ export const getWasteReportsByCitizen = async (citizenId) => {
   return response.data;
 };
 
+export const getWasteReportsByCollector = async (collectorId) => {
+  const response = await axiosClient.get(`/WasteReport/collector/${collectorId}`);
+  return response.data;
+};
+
+export const confirmWasteReport = async (reportId, collectorId) => {
+  const response = await axiosClient.post(`/WasteReport/confirm/${reportId}?collectorId=${collectorId}`);
+  return response.data;
+};
+
+export const processWasteReport = async (processData) => {
+  const response = await axiosClient.post("/WasteReport/process", processData);
+  return response.data;
+};
+
 export const deleteWasteReport = async (reportId) => {
   const response = await axiosClient.delete(`/WasteReport/${reportId}`);
   return response.data;

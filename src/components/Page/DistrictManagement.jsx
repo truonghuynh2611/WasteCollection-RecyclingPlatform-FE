@@ -13,6 +13,8 @@ export default function DistrictManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingDistrict, setEditingDistrict] = useState(null);
   const [districtName, setDistrictName] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 36;
 
   useEffect(() => {
     fetchDistricts();
@@ -77,7 +79,7 @@ export default function DistrictManagement() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-5xl mx-auto">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý Quận</h1>
@@ -100,45 +102,94 @@ export default function DistrictManagement() {
                   placeholder="Tìm kiếm quận..."
                   className="w-full pl-10 pr-4 py-3 border border-gray-100 rounded-xl bg-gray-50/50 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all text-sm"
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                 />
               </div>
               <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{filtered.length} quận</span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {loading ? (
-                Array(6).fill(0).map((_, i) => (
+                Array(12).fill(0).map((_, i) => (
                   <div key={i} className="h-32 bg-white rounded-2xl border border-gray-100 animate-pulse" />
                 ))
-              ) : filtered.map(district => (
-                <div key={district.districtId} className="group bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all flex items-start justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
-                      <MapPin className="w-6 h-6 text-indigo-600 group-hover:text-white transition-colors" />
+              ) : filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(district => (
+                <div key={district.districtId} className="group bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-indigo-100 transition-all flex flex-col justify-between min-h-[120px]">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center group-hover:bg-indigo-600 transition-colors">
+                      <MapPin className="w-5 h-5 text-indigo-600 group-hover:text-white transition-colors" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-800 text-lg">{district.districtName}</h3>
-                      <p className="text-xs text-gray-400 font-medium uppercase tracking-wider mt-1">Mã: #{district.districtId}</p>
+                    <div className="flex items-center gap-1">
+                      <button 
+                        onClick={() => handleOpenModal(district)}
+                        className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(district.districtId)}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <button 
-                      onClick={() => handleOpenModal(district)}
-                      className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(district.districtId)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <div>
+                    <h3 className="font-bold text-gray-800 text-sm truncate" title={district.districtName}>{district.districtName}</h3>
+                    <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Mã: #{district.districtId}</p>
                   </div>
                 </div>
               ))}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && filtered.length > itemsPerPage && (
+              <div className="flex justify-center items-center mt-8 gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Trước
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.ceil(filtered.length / itemsPerPage) }).map((_, idx) => {
+                    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                    if (
+                      totalPages > 7 &&
+                      idx !== 0 &&
+                      idx !== totalPages - 1 &&
+                      Math.abs(currentPage - 1 - idx) > 2
+                    ) {
+                      if (Math.abs(currentPage - 1 - idx) === 3) {
+                        return <span key={idx} className="px-2 text-gray-400">...</span>;
+                      }
+                      return null;
+                    }
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentPage(idx + 1)}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
+                          currentPage === idx + 1
+                            ? "bg-indigo-600 text-white shadow-sm"
+                            : "text-gray-600 hover:bg-gray-100"
+                        }`}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filtered.length / itemsPerPage), p + 1))}
+                  disabled={currentPage === Math.ceil(filtered.length / itemsPerPage)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Sau
+                </button>
+              </div>
+            )}
 
             {!loading && filtered.length === 0 && (
               <div className="text-center py-20 bg-white rounded-3xl border border-dashed border-gray-200">
