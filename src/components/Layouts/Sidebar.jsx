@@ -6,6 +6,7 @@ import {
   UserCog,
   CalendarDays,
   Map,
+  MapPin,
   Settings,
   Recycle,
 } from "lucide-react";
@@ -22,6 +23,8 @@ const mainMenuItems = [
   { id: "users",       label: "Quản lý người dùng", icon: Users,         path: "/userManagement" },
   { id: "collector",   label: "Quản lý người thu gom", icon: UserCog,      path: "/collectorManagement" },
   { id: "area",        label: "Quản lý khu vực",    icon: Map,           path: "/areaManagement" },
+  { id: "team",        label: "Quản lý đội ngũ",    icon: Users,         path: "/teamManagement" },
+  { id: "district",    label: "Quản lý Quận/Huyện", icon: MapPin,       path: "/districtManagement" },
 ];
 
 /**

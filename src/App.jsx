@@ -20,6 +20,8 @@ import ReportManagement from "./components/Page/ReportManagement.jsx";
 import UserManagement from "./components/Page/UserManagement.jsx";
 import CollectorManagement from "./components/Page/CollectorManagement.jsx";
 import AreaManagement from "./components/Page/AreaManagement.jsx";
+import TeamManagement from "./components/Page/TeamManagement.jsx";
+import DistrictManagement from "./components/Page/DistrictManagement.jsx";
 import VoucherManagement from "./components/Page/VoucherManagement.jsx";
 import CollectorLayout from "./components/Collector/CollectorLayout.jsx";
 import CollectorDashboard from "./components/Collector/CollectorDashboard.jsx";
@@ -183,7 +185,7 @@ function App() {
                   <Route
                     path="/collectorManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER]}>
                         <CollectorManagement />
                       </ProtectedRoute>
                     }
@@ -191,8 +193,24 @@ function App() {
                   <Route
                     path="/areaManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER]}>
                         <AreaManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/teamManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER]}>
+                        <TeamManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/districtManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.MANAGER]}>
+                        <DistrictManagement />
                       </ProtectedRoute>
                     }
                   />

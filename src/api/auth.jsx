@@ -19,9 +19,14 @@ export const registerUser = async (userData) => {
     return response.data; // Trả về kết quả từ server (thành công hoặc thông báo)
   } catch (error) {
     // Ném ra thông báo lỗi chi tiết từ server hoặc thông báo mặc định
-    throw new Error(
-      error.response?.data?.message || "Đăng ký thất bại, vui lòng thử lại!"
-    );
+    const serverData = error.response?.data;
+    const errors = serverData?.errors;
+    // Hiển thị lỗi validation chi tiết nếu có
+    const errorMsg = errors && errors.length > 0 
+      ? errors.join(". ") 
+      : serverData?.message || "Đăng ký thất bại, vui lòng thử lại!";
+    console.error("Register error details:", serverData);
+    throw new Error(errorMsg);
   }
 };
 
