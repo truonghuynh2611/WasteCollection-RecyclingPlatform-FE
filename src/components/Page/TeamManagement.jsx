@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
+import {
   Users, Plus, Search, Edit2, Trash2, X, Shield, User,
   ChevronDown, MapPin, Briefcase, UserCheck, Star, UserPlus
 } from "lucide-react";
@@ -16,7 +16,7 @@ export default function TeamManagement() {
   const [showModal, setShowModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
   const [formData, setFormData] = useState({ name: "", areaId: "" });
-  
+
   // New state for member assignment
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignTargetTeam, setAssignTargetTeam] = useState(null);
@@ -127,7 +127,7 @@ export default function TeamManagement() {
     }
   };
 
-  const filtered = teams.filter(t => 
+  const filtered = teams.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -188,13 +188,13 @@ export default function TeamManagement() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                       <button 
+                      <button
                         onClick={() => handleOpenModal(team)}
                         className="p-2.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all"
                       >
                         <Edit2 className="w-4.5 h-4.5" />
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDelete(team.teamId)}
                         className="p-2.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all"
                       >
@@ -206,14 +206,14 @@ export default function TeamManagement() {
                   <div className="p-6 bg-gray-50/30">
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Thành viên đội ({team.collectors?.length || 0})</h4>
-                      <button 
+                      <button
                         onClick={() => handleOpenAssignModal(team)}
                         className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
                       >
                         <UserPlus className="w-3 h-3" /> Gán thành viên
                       </button>
                     </div>
-                    
+
                     {team.collectors && team.collectors.length > 0 ? (
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {team.collectors.map(member => (
@@ -231,11 +231,10 @@ export default function TeamManagement() {
                             </div>
                             <button
                               onClick={() => handleToggleLeader(team.teamId, member.collectorId, member.role === 'Leader')}
-                              className={`p-2 rounded-lg transition-all ${
-                                member.role === 'Leader' 
-                                  ? 'bg-amber-50 text-amber-600 opacity-100' 
+                              className={`p-2 rounded-lg transition-all ${member.role === 'Leader'
+                                  ? 'bg-amber-50 text-amber-600 opacity-100'
                                   : 'text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/member:opacity-100'
-                              }`}
+                                }`}
                               title={member.role === 'Leader' ? "Gỡ chức Trưởng nhóm" : "Thiết lập Trưởng nhóm"}
                             >
                               <Shield className={`w-4 h-4 ${member.role === 'Leader' ? 'fill-amber-500/20' : ''}`} />
@@ -280,7 +279,7 @@ export default function TeamManagement() {
                   <X className="w-5 h-5 text-gray-400" />
                 </button>
               </div>
-              
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Tên Đội</label>
@@ -311,9 +310,9 @@ export default function TeamManagement() {
                 </div>
 
                 <div className="flex gap-3 pt-4">
-                  <button 
+                  <button
                     type="button"
-                    onClick={() => setShowModal(false)} 
+                    onClick={() => setShowModal(false)}
                     className="flex-1 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm transition-all"
                   >
                     Hủy
@@ -344,7 +343,7 @@ export default function TeamManagement() {
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            
+
             <div className="p-6 bg-gray-50">
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -356,12 +355,12 @@ export default function TeamManagement() {
                   onChange={e => setAssignSearch(e.target.value)}
                 />
               </div>
-              
+
               <div className="overflow-y-auto max-h-[400px] space-y-2 pr-2 custom-scrollbar">
                 {allCollectors
-                  .filter(c => 
-                    (c.fullName.toLowerCase().includes(assignSearch.toLowerCase()) || 
-                     c.email.toLowerCase().includes(assignSearch.toLowerCase())) &&
+                  .filter(c =>
+                    (c.fullName.toLowerCase().includes(assignSearch.toLowerCase()) ||
+                      c.email.toLowerCase().includes(assignSearch.toLowerCase())) &&
                     c.teamId !== assignTargetTeam?.teamId
                   )
                   .map(member => (
@@ -385,7 +384,7 @@ export default function TeamManagement() {
                       </button>
                     </div>
                   ))}
-                
+
                 {allCollectors.filter(c => c.teamId !== assignTargetTeam?.teamId).length === 0 && (
                   <div className="text-center py-10 text-gray-400 italic text-sm">
                     Không có nhân viên khả dụng để gán.

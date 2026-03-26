@@ -35,6 +35,7 @@ import Rankings from "./components/Page/Rankings.jsx";
 import Profile from "./components/Page/Profile.jsx";
 import VerifyEmail from "./components/Auth/VerifyEmail.jsx";
 import PointConfiguration from "./components/Page/PointConfiguration.jsx";
+import TeamManagement from "./components/Page/TeamManagement.jsx";
 // Nhập Toaster để hiển thị các thông báo dạng toast (nhảy lên ở góc màn hình)
 import { Toaster } from 'react-hot-toast';
 
@@ -219,6 +220,14 @@ function App() {
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <VoucherManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/teamManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                        <TeamManagement />
                       </ProtectedRoute>
                     }
                   />
