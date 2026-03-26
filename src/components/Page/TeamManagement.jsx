@@ -268,10 +268,19 @@ const TeamManagement = () => {
                                                 </div>
                                                 <div className="flex flex-wrap gap-2">
                                                     {team.collectors && team.collectors.length > 0 ? (
-                                                        team.collectors.map(c => (
-                                                            <div key={c.collectorId} className="px-4 py-2 bg-white rounded-xl border border-gray-100 text-sm font-semibold text-gray-700 shadow-sm flex items-center gap-2">
-                                                                <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                                                                {c.fullName || `Collector ${c.collectorId}`}
+                                                        team.collectors.map((c, idx) => (
+                                                            <div key={`${team.teamId}-col-${c.collectorId || idx}`} className="px-4 py-2 bg-white rounded-xl border border-gray-100 text-sm font-semibold text-gray-700 shadow-sm flex items-center justify-between gap-2 min-w-[150px]">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className={`w-2 h-2 rounded-full ${c.role === 1 ? 'bg-amber-500 animate-pulse' : 'bg-green-500'}`}></div>
+                                                                    <span className="truncate max-w-[100px]">{c.fullName || `Collector ${c.collectorId || idx}`}</span>
+                                                                </div>
+                                                                <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                                                                    c.role === 1 
+                                                                        ? 'bg-amber-100 text-amber-700 border border-amber-200' 
+                                                                        : 'bg-blue-50 text-blue-700 border border-blue-100'
+                                                                }`}>
+                                                                    {c.role === 1 ? 'Leader' : 'Member'}
+                                                                </span>
                                                             </div>
                                                         ))
                                                     ) : (
