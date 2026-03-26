@@ -20,6 +20,8 @@ import ReportManagement from "./components/Page/ReportManagement.jsx";
 import UserManagement from "./components/Page/UserManagement.jsx";
 import CollectorManagement from "./components/Page/CollectorManagement.jsx";
 import AreaManagement from "./components/Page/AreaManagement.jsx";
+import TeamManagement from "./components/Page/TeamManagement.jsx";
+import DistrictManagement from "./components/Page/DistrictManagement.jsx";
 import VoucherManagement from "./components/Page/VoucherManagement.jsx";
 import CollectorLayout from "./components/Collector/CollectorLayout.jsx";
 import CollectorDashboard from "./components/Collector/CollectorDashboard.jsx";
@@ -33,7 +35,6 @@ import Rankings from "./components/Page/Rankings.jsx";
 import Profile from "./components/Page/Profile.jsx";
 import VerifyEmail from "./components/Auth/VerifyEmail.jsx";
 import PointConfiguration from "./components/Page/PointConfiguration.jsx";
-import TeamManagement from "./components/Page/TeamManagement.jsx";
 // Nhập Toaster để hiển thị các thông báo dạng toast (nhảy lên ở góc màn hình)
 import { Toaster } from 'react-hot-toast';
 
@@ -184,7 +185,7 @@ function App() {
                   <Route
                     path="/collectorManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
                         <CollectorManagement />
                       </ProtectedRoute>
                     }
@@ -192,8 +193,24 @@ function App() {
                   <Route
                     path="/areaManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
                         <AreaManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/teamManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                        <TeamManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/districtManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                        <DistrictManagement />
                       </ProtectedRoute>
                     }
                   />
@@ -205,14 +222,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  <Route
-                    path="/teamManagement"
-                    element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
-                        <TeamManagement />
-                      </ProtectedRoute>
-                    }
-                  />
+
                   
                   {/* Trang cấu hình điểm thưởng (Cho Admin và Quản lý) */}
                   <Route

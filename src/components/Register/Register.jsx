@@ -73,10 +73,10 @@ function Register() {
       return;
     }
 
-    // 3. Kiểm tra độ mạnh của mật khẩu
-    // Độ dài từ 6 đến 15 ký tự
-    if (formData.password.length < 6 || formData.password.length > 15) {
-      setError("Mật khẩu phải dài từ 6 đến 15 ký tự");
+    // 3. Kiểm tra độ mạnh của mật khẩu (khớp với backend)
+    // Độ dài ít nhất 8 ký tự
+    if (formData.password.length < 8) {
+      setError("Mật khẩu phải có ít nhất 8 ký tự");
       return;
     }
     // Không chứa khoảng trắng
@@ -84,10 +84,10 @@ function Register() {
       setError("Mật khẩu không được chứa khoảng trắng");
       return;
     }
-    // Phải có chữ hoa, chữ thường và ký tự đặc biệt
-    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[!@#$%^&*(),.?":{}|<>]).+$/;
+    // Phải có chữ hoa, chữ thường, số và ký tự đặc biệt
+    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
     if (!pwdRegex.test(formData.password)) {
-      setError("Mật khẩu phải bao gồm ít nhất một chữ hoa, một chữ thường và một ký tự đặc biệt");
+      setError("Mật khẩu phải bao gồm ít nhất một chữ hoa, một chữ thường, một chữ số và một ký tự đặc biệt (@$!%*?&)");
       return;
     }
 

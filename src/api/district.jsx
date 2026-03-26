@@ -32,3 +32,30 @@ export const getDistrictDetails = async (id) => {
         throw error;
     }
 };
+/**
+ * Tạo mới một Quận/Huyện
+ * @param {Object} data - Dữ liệu quận mới { districtName }
+ */
+export const createDistrict = async (data) => {
+    const response = await axiosClient.post("/District", data);
+    return response.data;
+};
+
+/**
+ * Cập nhật tên Quận/Huyện
+ * @param {number} id - ID quận
+ * @param {Object} data - Dữ liệu cập nhật { districtName }
+ */
+export const updateDistrict = async (id, data) => {
+    const response = await axiosClient.put(`/District/${id}`, data);
+    return response.data;
+};
+
+/**
+ * Xóa Quận/Huyện
+ * @param {number} id - ID quận
+ */
+export const deleteDistrict = async (id) => {
+    const response = await axiosClient.delete(`/District/${id}`);
+    return response.data;
+};

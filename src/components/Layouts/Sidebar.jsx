@@ -6,6 +6,7 @@ import {
   UserCog,
   CalendarDays,
   Map,
+  MapPin,
   Settings,
   Recycle,
 } from "lucide-react";
@@ -17,20 +18,21 @@ import { useNavigate, useLocation } from "react-router-dom";
  * Bao gồm ID để định danh, Nhãn hiển thị, Icon đại diện và Path để điều hướng
  */
 const mainMenuItems = [
-  { id: "dashboard",   label: "Bảng điều khiển",   icon: LayoutGrid,    path: "/admin" },
-  { id: "requests",    label: "Yêu cầu thu gom",   icon: ClipboardList, path: "/reportManagement" },
-  { id: "users",       label: "Quản lý người dùng", icon: Users,         path: "/userManagement" },
-  { id: "collector",   label: "Quản lý người thu gom", icon: UserCog,      path: "/collectorManagement" },
-  { id: "area",        label: "Quản lý khu vực",    icon: Map,           path: "/areaManagement" },
-  { id: "teams",       label: "Quản lý đội",        icon: Users,         path: "/teamManagement" },
+  { id: "dashboard", label: "Bảng điều khiển", icon: LayoutGrid, path: "/admin" },
+  { id: "requests", label: "Yêu cầu thu gom", icon: ClipboardList, path: "/reportManagement" },
+  { id: "users", label: "Quản lý người dùng", icon: Users, path: "/userManagement" },
+  { id: "collector", label: "Quản lý người thu gom", icon: UserCog, path: "/collectorManagement" },
+  { id: "area", label: "Quản lý khu vực", icon: Map, path: "/areaManagement" },
+  { id: "team", label: "Quản lý đội ngũ", icon: Users, path: "/teamManagement" },
+  { id: "district", label: "Quản lý Quận/Huyện", icon: MapPin, path: "/districtManagement" },
 ];
 
 /**
  * DANH SÁCH MENU HOẠT ĐỘNG (BỔ TRỢ)
  */
 const activityMenuItems = [
-  { id: "vouchers",  label: "Quản lý Voucher", icon: Recycle,      path: "/voucherManagement" },
-  { id: "settings",  label: "Cấu hình điểm thưởng", icon: Settings, path: "/settings" },
+  { id: "vouchers", label: "Quản lý Voucher", icon: Recycle, path: "/voucherManagement" },
+  { id: "settings", label: "Cấu hình điểm thưởng", icon: Settings, path: "/settings" },
 ];
 
 const Sidebar = () => {
@@ -50,11 +52,10 @@ const Sidebar = () => {
           key={item.id}
           onClick={() => navigate(item.path)}
           // Áp dụng màu xanh nếu đang active, ngược lại để màu xám
-          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${
-            isActive
+          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-all ${isActive
               ? "bg-green-50 text-green-600 font-bold border-r-4 border-green-500 rounded-r-none"
               : "text-gray-600 hover:bg-gray-50 hover:text-green-500"
-          }`}
+            }`}
         >
           <Icon className="w-5 h-5 shrink-0" />
           <span className="text-sm">{item.label}</span>
@@ -86,7 +87,7 @@ const Sidebar = () => {
           {renderMenuItems(activityMenuItems)}
         </div>
       </nav>
-      
+
       {/* PHẦN CHÂN SIDEBAR (Tùy chọn hiển thị phiên bản hoặc hỗ trợ) */}
       <div className="p-4 border-t border-gray-100 italic text-[10px] text-gray-400 text-center">
         v1.0.0 - Green Tech Team
