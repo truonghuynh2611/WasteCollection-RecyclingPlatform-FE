@@ -1,6 +1,5 @@
 import axiosClient from "./axiosClient";
 
-<<<<<<< HEAD
 /**
  * Lấy danh sách tất cả các Team
  */
@@ -104,29 +103,12 @@ export const removeCollectorFromTeam = async (data) => {
 export const assignTeamToArea = async (teamId, areaId) => {
     const response = await axiosClient.post(`/Team/${teamId}/assign-area/${areaId}`);
     return response.data;
-=======
-export const getAllTeams = async () => {
-  const response = await axiosClient.get("/Team");
-  if (response.data && response.data.success) {
-    return response.data.data;
-  }
-  return [];
 };
 
-export const createTeam = async (teamData) => {
-  const response = await axiosClient.post("/Team", teamData);
-  return response.data;
-};
-
-export const addCollectorToTeam = async (teamId, collectorId) => {
-  const response = await axiosClient.put(`/Team/${teamId}/collectors`, collectorId, {
-    headers: { "Content-Type": "application/json" }
-  });
-  return response.data;
-};
-
+/**
+ * Gán báo cáo cho Team
+ */
 export const assignReportToTeam = async (assignmentData) => {
   const response = await axiosClient.post("/Team/assign-report", assignmentData);
   return response.data;
->>>>>>> e382538af3020309af9feda601303a9a2d5d0254
 };
