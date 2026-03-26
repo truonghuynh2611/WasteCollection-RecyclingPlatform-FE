@@ -32,3 +32,18 @@ export const updateWasteReport = async (reportId, updateData) => {
   const response = await axiosClient.put(`/WasteReport/${reportId}`, updateData);
   return response.data;
 };
+
+export const assignReport = async (reportId) => {
+  const response = await axiosClient.post(`/WasteReport/${reportId}/assign`);
+  return response.data;
+};
+
+export const submitCompletion = async (data) => {
+  const response = await axiosClient.post("/WasteReport/submit-completion", data);
+  return response.data;
+};
+
+export const verifyCompletion = async (data) => {
+  const response = await axiosClient.post("/WasteReport/verify-completion", data);
+  return response.data;
+};

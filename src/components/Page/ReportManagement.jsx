@@ -13,7 +13,7 @@ import ManagerSidebar from "../Manager/ManagerSidebar";
 // Nhập context xác thực để kiểm tra vai trò người dùng
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập hàm gọi API lấy danh sách báo cáo rác
-import { getWasteReports } from "../../api/waste";
+import { getWasteReports, assignReport, verifyCompletion } from "../../api/waste";
 // Thành phần hiển thị thông báo nhẹ (Toast)
 import Toast from "../common/Toast";
 
@@ -23,6 +23,7 @@ const tabs = [
   { id: "pending", label: "Chờ xử lý", count: null },
   { id: "assigned", label: "Đã phân công", count: null },
   { id: "collecting", label: "Đang thu gom", count: null },
+  { id: "reported", label: "Chờ xác nhận", count: null },
   { id: "completed", label: "Đã hoàn thành", count: null },
 ];
 
@@ -34,6 +35,7 @@ const statusColors = {
   "OnTheWay": "bg-purple-100 text-purple-700",
   "Collected": "bg-green-100 text-green-700",
   "Failed": "bg-red-100 text-red-700",
+  "ReportedByTeam": "bg-blue-100 text-blue-700",
 };
 
 // NHÃN TIẾNG VIỆT CHO CÁC TRẠNG THÁI TỪ BACKEND
@@ -44,6 +46,7 @@ const statusLabels = {
   "OnTheWay": "Đang đến",
   "Collected": "Hoàn thành",
   "Failed": "Đã hủy",
+  "ReportedByTeam": "Chờ xác nhận",
 };
 
 /**
@@ -123,7 +126,7 @@ function ViewModal({ item, onClose }) {
               </p>
               
               <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                {item.wasteReportItems && item.wasteReportItems.length > 0 ? (
+                {item.wasteReportItems && item.wasteReportItems.length > 0 && 
                   item.wasteReportItems.map((sub, idx) => (
                     <div key={idx} className="bg-gray-50 rounded-2xl p-4 border border-gray-100/50 hover:bg-gray-100/50 transition-colors">
                       <div className="flex space-x-4">
@@ -153,25 +156,30 @@ function ViewModal({ item, onClose }) {
                       </div>
                     </div>
                   ))
-                ) : (
-                  /* Legacy view for old reports */
-                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 italic text-gray-500 text-sm">
-                    <div className="flex items-center space-x-3 mb-4">
-                       <Tag className="text-purple-500" size={18} />
-                       <span className="font-bold text-gray-700 not-italic">{item.wasteType}</span>
-                    </div>
-                    <p className="pl-7">{item.description}</p>
-                    
-                    {item.reportImages && item.reportImages.length > 0 && (
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                         {item.reportImages.map((img, i) => (
-                           <img key={i} src={img.imageUrl.startsWith('http') ? img.imageUrl : `${API_BASE_URL}${img.imageUrl}`} className="w-full h-24 object-cover rounded-xl" />
-                         ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                }
               </div>
+
+              {item.reportImages && item.reportImages.length > 0 && (
+                <div className="mt-6">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4 border-b border-gray-100 pb-2">
+                    Hình ảnh minh chứng
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {item.reportImages.map((img, i) => (
+                      <div key={i} className="relative group">
+                        <img 
+                          src={img.imageurl?.startsWith('http') ? img.imageurl : `${API_BASE_URL}${img.imageurl}`} 
+                          className="w-full h-24 object-cover rounded-xl border border-gray-100 shadow-sm"
+                          alt="Report Image"
+                        />
+                        <span className={`absolute top-1 left-1 px-1.5 py-0.5 rounded text-[8px] font-black uppercase text-white ${img.imageType === 'Collector' ? 'bg-indigo-500' : 'bg-green-500'}`}>
+                          {img.imageType === 'Collector' ? 'Đội thu gom' : 'Người dân'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -201,49 +209,70 @@ export default function ReportManagement() {
     setToast({ message, type });
   };
 
-  // FETCH DỮ LIỆU TỪ API KHI TRANG LOAD
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        setLoading(true);
-        const response = await getWasteReports();
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const response = await getWasteReports();
+      
+      const normalizedData = (Array.isArray(response) ? response : []).map(r => {
+        let rawStatus = r.status !== undefined ? r.status : r.Status;
+        let strStatus = String(rawStatus !== undefined ? rawStatus : "");
         
-        // CHUẨN HÓA DỮ LIỆU (NORMALIZATION)
-        // Ánh xạ các mã trạng thái số từ DB sang chuỗi văn bản tương ứng
-        const normalizedData = (Array.isArray(response) ? response : []).map(r => {
-          // Lấy giá trị status gốc, ưu tiên lowercase 'status' hoặc 'Status' từ API
-          let rawStatus = r.status !== undefined ? r.status : r.Status;
-          let strStatus = String(rawStatus !== undefined ? rawStatus : "");
-          
-          // Chuyển đổi mã trạng thái số sang chuỗi văn bản tương ứng
-          if (strStatus === "0") strStatus = "Pending";
-          else if (strStatus === "1") strStatus = "Accepted";
-          else if (strStatus === "2") strStatus = "Assigned";
-          else if (strStatus === "3") strStatus = "OnTheWay";
-          else if (strStatus === "4") strStatus = "Collected";
-          else if (strStatus === "5") strStatus = "Failed";
-          
-          return { 
-            ...r, 
-            status: strStatus,
-            reportId: r.reportId || r.ReportId,
-            description: r.description || r.Description,
-            wasteType: r.wasteType || r.WasteType,
-            createdAt: r.createdAt || r.CreatedAt
-          };
-        });
+        if (strStatus === "0") strStatus = "Pending";
+        else if (strStatus === "1") strStatus = "Accepted";
+        else if (strStatus === "2") strStatus = "Assigned";
+        else if (strStatus === "3") strStatus = "OnTheWay";
+        else if (strStatus === "4") strStatus = "Collected";
+        else if (strStatus === "5") strStatus = "Failed";
+        else if (strStatus === "6") strStatus = "ReportedByTeam";
         
-        setData(normalizedData);
-      } catch (error) {
-        console.error("Failed to fetch reports:", error);
-        showToast("Không thể tải danh sách báo cáo", "error");
-        setData([]);
-      } finally {
-        setLoading(false);
+        return { 
+          ...r, 
+          status: strStatus,
+          reportId: r.reportId || r.ReportId,
+          description: r.description || r.Description,
+          wasteType: r.wasteType || r.WasteType,
+          createdAt: r.createdAt || r.CreatedAt
+        };
+      });
+      
+      setData(normalizedData);
+    } catch (error) {
+      console.error("Failed to fetch reports:", error);
+      showToast("Không thể tải danh sách báo cáo", "error");
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApprove = async (reportId) => {
+    try {
+      const res = await assignReport(reportId);
+      if (res.success || res === "Report approved and assigned to Main Team successfully") {
+        showToast("Đã duyệt và gán cho Đội Chính");
+        fetchReports();
+      } else {
+        showToast(res.message || "Lỗi khi duyệt báo cáo", "error");
       }
-    };
-    fetchReports();
-  }, [location.search]);
+    } catch (error) {
+      showToast(error.response?.data || error.message || "Lỗi khi duyệt", "error");
+    }
+  };
+
+  const handleVerify = async (reportId, isApproved) => {
+    try {
+      const res = await verifyCompletion({ reportId, isApproved, adminNote: "Verified by Admin" });
+      if (res.success || res === "Report finalized and points awarded" || res === "Report rejected and returned to team") {
+        showToast(isApproved ? "Đã xác nhận hoàn thành" : "Đã từ chối bằng chứng");
+        fetchReports();
+      } else {
+        showToast(res.message || "Lỗi khi xử lý", "error");
+      }
+    } catch (error) {
+      showToast(error.response?.data || error.message || "Lỗi khi xử lý", "error");
+    }
+  };
 
   // TỰ ĐỘNG MỞ CHI TIẾT NẾU URL CÓ ?reportId=...
   useEffect(() => {
@@ -255,12 +284,17 @@ export default function ReportManagement() {
     }
   }, [location.search, data]);
 
+  useEffect(() => {
+    fetchReports();
+  }, [location.search]);
+
   // LỌC DỮ LIỆU HIỂN THỊ DỰA TRÊN TAB ĐANG CHỌN
   const filteredData = data.filter(item => {
     if (activeTab === "all") return true;
     if (activeTab === "pending") return item.status === "Pending";
     if (activeTab === "assigned") return item.status === "Assigned" || item.status === "Accepted";
     if (activeTab === "collecting") return item.status === "OnTheWay";
+    if (activeTab === "reported") return item.status === "ReportedByTeam";
     if (activeTab === "completed") return item.status === "Collected";
     return true;
   });
@@ -362,9 +396,26 @@ export default function ReportManagement() {
                           <button 
                             onClick={() => setViewItem(req)}
                             className="p-2 text-gray-400 hover:text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors"
+                            title="Xem chi tiết"
                           >
-                            <UserCheck className="w-4 h-4" />
+                            <Eye className="w-4 h-4" />
                           </button>
+                          {req.status === "Pending" && (
+                            <button 
+                              onClick={() => handleApprove(req.reportId)}
+                              className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition-colors"
+                            >
+                              Duyệt
+                            </button>
+                          )}
+                          {req.status === "ReportedByTeam" && (
+                            <button 
+                              onClick={() => handleVerify(req.reportId, true)}
+                              className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors"
+                            >
+                              Xác nhận
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

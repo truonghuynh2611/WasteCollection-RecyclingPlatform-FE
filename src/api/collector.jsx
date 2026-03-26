@@ -7,3 +7,10 @@ export const getAllCollectorsForAdmin = async () => {
     }
     throw new Error(response.data?.message || "Lỗi khi lấy danh sách nhân viên");
 };
+export const getProfile = async () => {
+    const response = await axiosClient.get("/Collector/profile");
+    if (response.data && response.data.success) {
+        return response.data.data;
+    }
+    throw new Error(response.data?.message || "Lỗi khi lấy thông tin cá nhân");
+};

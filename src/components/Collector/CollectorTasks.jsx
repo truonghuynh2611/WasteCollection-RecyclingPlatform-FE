@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import { Search, Filter, MapPin, Clock, X, ChevronRight, Scale, Info, ClipboardList } from "lucide-react";
 // Nhập API service để lấy và cập nhật dữ liệu nhiệm vụ
 import { taskService } from "../../api/task";
+import { getProfile } from "../../api/collector";
+import { submitCompletion } from "../../api/waste";
+import { default as Toast } from "../common/Toast";
+import { Camera, Trash2 } from "lucide-react";
 
 /**
  * COMPONENT QUẢN LÝ DANH SÁCH NHIỆM VỤ CỦA COLLECTOR
@@ -15,13 +19,30 @@ export default function CollectorTasks() {
   const [activeTab, setActiveTab] = useState("Tất cả"); // Tab lọc trạng thái hiện tại
   const [searchQuery, setSearchQuery] = useState(""); // Nội dung tìm kiếm theo địa chỉ
   const [selectedTask, setSelectedTask] = useState(null); // Nhiệm vụ đang được xem chi tiết
+  const [collectorProfile, setCollectorProfile] = useState(null); // Profile của collector hiện tại
+  const [isEvidenceModalOpen, setIsEvidenceModalOpen] = useState(false); // Modal nộp minh chứng
+  const [evidenceImages, setEvidenceImages] = useState([]); // File ảnh minh chứng
+  const [evidencePreview, setEvidencePreview] = useState([]); // Preview ảnh minh chứng
+  const [completionNote, setCompletionNote] = useState(""); // Ghi chú hoàn thành
+  const [submitting, setSubmitting] = useState(false); // Trạng thái đang gửi
+  const [toast, setToast] = useState(null);
 
   /**
    * EFFECT: Tải dữ liệu nhiệm vụ khi component mount
    */
   useEffect(() => {
     fetchTasks();
+    fetchProfile();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const profile = await getProfile();
+      setCollectorProfile(profile);
+    } catch (err) {
+      console.error("Lỗi khi tải profile:", err);
+    }
+  };
 
   /**
    * HÀM TẢI DANH SÁCH NHIỆM VỤ TỪ API
@@ -33,9 +54,10 @@ export default function CollectorTasks() {
       // Chuẩn hóa trạng thái từ số sang chữ nếu cần
       const normalizedData = (Array.isArray(res) ? res : []).map(t => {
         let s = t.status;
-        if (s === 0 || s === "0") s = "Chờ";
-        else if (s === 1 || s === "1") s = "Đang thu gom";
-        else if (s === 2 || s === "2") s = "Hoàn thành";
+        if (s === "0" || s === 0) s = "Chờ";
+        else if (s === "1" || s === 1) s = "Đang thu gom";
+        else if (s === "2" || s === 2 || s === "Collected") s = "Hoàn thành";
+        else if (s === "6" || s === 6 || s === "ReportedByTeam") s = "Đang chờ admin xác nhận";
         return { ...t, status: s };
       });
       setTasks(normalizedData);
@@ -72,11 +94,66 @@ export default function CollectorTasks() {
     return matchesTab && matchesSearch;
   });
 
-  // Định nghĩa màu sắc cho các trạng thái hiển thị
   const statusColors = {
     "Chờ": "bg-gray-100 text-gray-500 border-gray-200",
     "Đang thu gom": "bg-blue-100 text-blue-600 border-blue-200",
     "Hoàn thành": "bg-green-100 text-green-600 border-green-200",
+    "Đang chờ admin xác nhận": "bg-amber-100 text-amber-600 border-amber-200",
+  };
+
+  const handleFileChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      setEvidenceImages(prev => [...prev, ...files]);
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setEvidencePreview(prev => [...prev, reader.result]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeImage = (index) => {
+    setEvidenceImages(prev => prev.filter((_, i) => i !== index));
+    setEvidencePreview(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmitEvidence = async () => {
+    if (!selectedTask || !collectorProfile) return;
+    if (evidenceImages.length === 0) {
+      setToast({ message: "Vui lòng tải ít nhất 1 ảnh minh chứng.", type: "error" });
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const formData = new FormData();
+      formData.append("ReportId", selectedTask.reportId || selectedTask.id);
+      formData.append("LeaderId", collectorProfile.collectorId);
+      formData.append("Note", completionNote);
+      
+      evidenceImages.forEach(file => {
+        formData.append("ImageFiles", file);
+      });
+
+      await submitCompletion(formData);
+      setToast({ message: "Đã gửi báo cáo hoàn thành cho Admin!", type: "success" });
+      setIsEvidenceModalOpen(false);
+      setSelectedTask(null);
+      fetchTasks();
+      
+      // Reset state
+      setEvidenceImages([]);
+      setEvidencePreview([]);
+      setCompletionNote("");
+    } catch (err) {
+      console.error("Lỗi khi gửi báo cáo hoàn thành:", err);
+      setToast({ message: err.response?.data || "Gửi báo cáo thất bại.", type: "error" });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -99,7 +176,7 @@ export default function CollectorTasks() {
           {/* THANH TÌM KIẾM VÀ TABS LỌC THEO TRẠNG THÁI */}
           <div className="flex flex-col md:flex-row gap-6 mb-8 items-center justify-between">
             <div className="flex bg-white p-1.5 rounded-2xl border border-gray-100 shadow-sm w-full md:w-auto overflow-x-auto">
-              {["Tất cả", "Chờ", "Đang thu gom", "Hoàn thành"].map(tab => (
+              {["Tất cả", "Chờ", "Đang thu gom", "Đang chờ admin xác nhận", "Hoàn thành"].map(tab => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
@@ -246,12 +323,21 @@ export default function CollectorTasks() {
                   </button>
                 )}
                 {selectedTask.status === "Đang thu gom" && (
-                  <button
-                    onClick={() => handleUpdateStatus(selectedTask.id, "Hoàn thành")}
-                    className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-3xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-100 active:scale-95"
-                  >
-                    Đánh dấu đã hoàn thành
-                  </button>
+                  collectorProfile?.role === 1 ? (
+                    <button
+                      onClick={() => setIsEvidenceModalOpen(true)}
+                      className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-3xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-100 active:scale-95"
+                    >
+                      Báo cáo hoàn thành (Nộp minh chứng)
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="w-full py-5 bg-gray-200 text-gray-400 rounded-3xl font-black uppercase tracking-widest text-xs cursor-not-allowed"
+                    >
+                      Đợi Trưởng nhóm báo cáo hoàn thành
+                    </button>
+                  )
                 )}
                 <button
                   onClick={() => setSelectedTask(null)}
@@ -264,6 +350,79 @@ export default function CollectorTasks() {
           </div>
         </div>
       )}
+
+      {/* MODAL NỘP MINH CHỨNG (Leader only) */}
+      {isEvidenceModalOpen && selectedTask && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white w-full max-w-lg rounded-[40px] shadow-2xl overflow-hidden animate-slideUp">
+            <div className="p-8">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-100">
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                  <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight">Báo cáo hoàn thành</h2>
+                </div>
+                <button onClick={() => setIsEvidenceModalOpen(false)} className="p-3 bg-gray-50 hover:bg-gray-100 rounded-2xl transition-colors">
+                  <X className="w-6 h-6 text-gray-400" />
+                </button>
+              </div>
+
+              <div className="space-y-6 mb-8">
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Hình ảnh minh chứng ({evidenceImages.length})</label>
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    {evidencePreview.map((url, i) => (
+                      <div key={i} className="relative aspect-square rounded-2xl overflow-hidden border border-gray-100 group">
+                        <img src={url} className="w-full h-full object-cover" alt="evidence" />
+                        <button 
+                          onClick={() => removeImage(i)}
+                          className="absolute top-1 right-1 p-1 bg-white/80 hover:bg-white text-rose-500 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <label className="aspect-square rounded-2xl border-2 border-dashed border-gray-100 flex flex-col items-center justify-center hover:bg-gray-50 transition-colors cursor-pointer text-gray-300 hover:text-blue-500 hover:border-blue-200">
+                      <Camera size={24} />
+                      <span className="text-[10px] font-bold mt-2 uppercase tracking-tighter">Thêm ảnh</span>
+                      <input type="file" multiple accept="image/*" onChange={handleFileChange} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Ghi chú (Tùy chọn)</label>
+                  <textarea 
+                    value={completionNote}
+                    onChange={(e) => setCompletionNote(e.target.value)}
+                    placeholder="Nhập ghi chú thu gom (nếu có)..."
+                    className="w-full px-5 py-4 bg-gray-50 border border-gray-100 rounded-3xl text-sm focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all resize-none h-24"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={handleSubmitEvidence}
+                  disabled={submitting || evidenceImages.length === 0}
+                  className="w-full py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-3xl font-black uppercase tracking-widest text-xs transition-all shadow-xl shadow-blue-100 active:scale-95 disabled:opacity-50 disabled:active:scale-100"
+                >
+                  {submitting ? "Đang xử lý..." : "Gửi minh chứng hoàn thành"}
+                </button>
+                <button
+                  onClick={() => setIsEvidenceModalOpen(false)}
+                  className="w-full py-5 bg-gray-50 hover:bg-gray-100 text-gray-400 rounded-3xl font-black uppercase tracking-widest text-xs transition-all active:scale-95"
+                >
+                  Hủy bỏ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* CSS Animations */}
       <style>{`

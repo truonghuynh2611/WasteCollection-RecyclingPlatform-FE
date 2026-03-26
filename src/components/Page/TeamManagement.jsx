@@ -55,18 +55,23 @@ export default function TeamManagement() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    // Validation: Only one main team per area
+    // Kiểm tra giới hạn: 1 Đội chính và 1 Đội hỗ trợ mỗi khu vực
+    const existingTeamsInArea = teams.filter(t => t.areaId === parseInt(formData.areaId));
+    
     if (formData.type === 0) {
-      const existingMainTeam = teams.find(t => 
-        t.areaId === formData.areaId && 
-        t.type === 0 && 
-        (!editingTeam || t.teamId !== editingTeam.teamId)
-      );
-      if (existingMainTeam) {
-        toast.error(`Khu vực này đã có đội chính (${existingMainTeam.name}). Vui lòng chọn đội phụ hoặc đổi khu vực.`);
+      const existingMain = existingTeamsInArea.find(t => t.type === 0 && (!editingTeam || t.teamId !== editingTeam.teamId));
+      if (existingMain) {
+        toast.error(`Khu vực này đã có đội chính (${existingMain.name}).`);
+        return;
+      }
+    } else if (formData.type === 1) {
+      const existingSupport = existingTeamsInArea.find(t => t.type === 1 && (!editingTeam || t.teamId !== editingTeam.teamId));
+      if (existingSupport) {
+        toast.error(`Khu vực này đã có đội hỗ trợ (${existingSupport.name}).`);
         return;
       }
     }
+
     if (!formData.name.trim()) return toast.error("Vui lòng nhập tên đội");
     if (!formData.areaId) return toast.error("Vui lòng chọn khu vực");
 
@@ -108,6 +113,17 @@ export default function TeamManagement() {
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi khi thay đổi chức vụ");
+    }
+  };
+
+  const handleRemoveMember = async (teamId, collectorId) => {
+    if (!window.confirm("Bạn có chắc muốn gỡ nhân viên này khỏi đội?")) return;
+    try {
+      await removeCollectorFromTeam({ teamId, collectorId });
+      toast.success("Đã gỡ thành viên khỏi đội");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi gỡ thành viên");
     }
   };
 
@@ -195,7 +211,7 @@ export default function TeamManagement() {
                         <div className="flex items-center gap-2 mt-1">
                           <MapPin className="w-3.5 h-3.5 text-gray-400" />
                           <span className="text-xs text-gray-500 font-medium">
-                            #{team.teamId} • {areas.find(a => a.areaId === team.areaId)?.name || `Area ID: ${team.areaId}`}
+                            #{team.teamId} • {team.areaName || (team.areaId ? `Area ID: ${team.areaId}` : "Chưa gán khu vực")}
                           </span>
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${team.type === 1 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
                             {team.type === 1 ? 'Đội Phụ' : 'Đội Chính'}
@@ -245,16 +261,25 @@ export default function TeamManagement() {
                                 </p>
                               </div>
                             </div>
-                            <button
-                              onClick={() => handleToggleLeader(team.teamId, member.collectorId, member.role === 'Leader')}
-                              className={`p-2 rounded-lg transition-all ${member.role === 'Leader'
-                                  ? 'bg-amber-50 text-amber-600 opacity-100'
-                                  : 'text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 opacity-0 group-hover/member:opacity-100'
-                                }`}
-                              title={member.role === 'Leader' ? "Gỡ chức Trưởng nhóm" : "Thiết lập Trưởng nhóm"}
-                            >
-                              <Shield className={`w-4 h-4 ${member.role === 'Leader' ? 'fill-amber-500/20' : ''}`} />
-                            </button>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleToggleLeader(team.teamId, member.collectorId, member.role === 'Leader')}
+                                className={`p-2 rounded-lg transition-all ${member.role === 'Leader'
+                                    ? 'bg-amber-100 text-amber-600'
+                                    : 'text-gray-300 hover:text-amber-600 hover:bg-amber-50'
+                                  }`}
+                                title={member.role === 'Leader' ? "Gỡ chức Trưởng nhóm" : "Cử làm Trưởng nhóm"}
+                              >
+                                <Shield className={`w-4 h-4 ${member.role === 'Leader' ? 'fill-amber-500/20' : ''}`} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveMember(team.teamId, member.collectorId)}
+                                className="p-2 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Gỡ khỏi đội"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -404,7 +429,7 @@ export default function TeamManagement() {
                   .filter(c =>
                     (c.fullName.toLowerCase().includes(assignSearch.toLowerCase()) ||
                       c.email.toLowerCase().includes(assignSearch.toLowerCase())) &&
-                    c.teamId !== assignTargetTeam?.teamId
+                    c.teamId === null
                   )
                   .map(member => (
                     <div key={member.collectorId} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between hover:border-indigo-300 transition-all group">
@@ -428,9 +453,9 @@ export default function TeamManagement() {
                     </div>
                   ))}
 
-                {allCollectors.filter(c => c.teamId !== assignTargetTeam?.teamId).length === 0 && (
+                {allCollectors.filter(c => c.teamId === null).length === 0 && (
                   <div className="text-center py-10 text-gray-400 italic text-sm">
-                    Không có nhân viên khả dụng để thêm.
+                    Không có nhân viên thu gom tự do nào khả dụng.
                   </div>
                 )}
               </div>

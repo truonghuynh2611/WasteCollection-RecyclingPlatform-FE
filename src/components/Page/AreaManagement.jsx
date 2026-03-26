@@ -296,10 +296,17 @@ export default function AreaManagement() {
                               setAssigningAreaId(area.areaId);
                               setShowAssignModal(true);
                             }}
-                            className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
+                            disabled={area.teams?.length >= 2}
+                            className={`flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg transition-all ${
+                              area.teams?.length >= 2 
+                              ? "bg-gray-100 text-gray-400 cursor-not-allowed" 
+                              : "text-indigo-600 hover:text-indigo-700 bg-indigo-50"
+                            }`}
                           >
                             <UserPlus className="w-3 h-3" />
-                            {area.teams?.some(t => t.type === 0) ? "Thêm Đội hỗ trợ" : "Thêm Đội"}
+                            {area.teams?.length >= 2 
+                              ? "Đã đủ 2 đội" 
+                              : (area.teams?.some(t => t.type === 0) ? "Thêm Đội hỗ trợ" : "Thêm Đội")}
                           </button>
                         </div>
                       </div>
