@@ -1,7 +1,7 @@
 // Nhập các icon cần thiết từ lucide-react để minh họa trạng thái và thao tác
 import {
   Bell, Filter, ChevronLeft, ChevronRight,
-  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Camera, Recycle
+  Pencil, Trash2, X, UserCheck, MapPin, Calendar, Tag, User, Users, Camera, Recycle
 } from "lucide-react";
 // Nhập các React hook
 import { useState, useEffect } from "react";
@@ -101,6 +101,19 @@ function ViewModal({ item, onClose }) {
                   <span className="text-sm">{item.area?.name || "Tất cả khu vực"}</span>
                 </div>
               </div>
+
+              {item.team && (
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Đội xử lý</p>
+                  <div className="flex items-center space-x-2">
+                    <Users size={16} className="text-indigo-500" />
+                    <span className="text-sm font-bold text-gray-700">{item.team.name}</span>
+                  </div>
+                  <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${item.team.type === 1 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                    {item.team.type === 1 ? 'Đội Phụ' : 'Đội Chính'}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Cột phải: Danh sách mục rác chi tiết */}

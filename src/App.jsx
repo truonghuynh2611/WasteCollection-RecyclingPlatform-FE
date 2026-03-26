@@ -185,7 +185,7 @@ function App() {
                   <Route
                     path="/collectorManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <CollectorManagement />
                       </ProtectedRoute>
                     }
@@ -193,7 +193,7 @@ function App() {
                   <Route
                     path="/areaManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <AreaManagement />
                       </ProtectedRoute>
                     }
@@ -201,7 +201,7 @@ function App() {
                   <Route
                     path="/teamManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <TeamManagement />
                       </ProtectedRoute>
                     }
@@ -209,7 +209,7 @@ function App() {
                   <Route
                     path="/districtManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <DistrictManagement />
                       </ProtectedRoute>
                     }
@@ -228,7 +228,7 @@ function App() {
                   <Route
                     path="/settings"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <PointConfiguration />
                       </ProtectedRoute>
                     }

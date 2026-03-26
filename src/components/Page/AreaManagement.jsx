@@ -6,7 +6,7 @@ import {
 import Sidebar from "../Layouts/Sidebar";
 import { getAllAreas, createArea, updateArea, deleteArea } from "../../api/area";
 import { getAllDistricts } from "../../api/district";
-import { getAllTeams, assignTeamToArea, createTeam } from "../../api/team";
+import { getAllTeams, assignTeamToArea, createTeam, updateTeam } from "../../api/team";
 import { toast } from "react-hot-toast";
 
 const statusStyle = {
@@ -30,6 +30,8 @@ export default function AreaManagement() {
   const [teamSearch, setTeamSearch] = useState("");
   const [showCreateTeamModal, setShowCreateTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState("");
+  const [newTeamType, setNewTeamType] = useState(0); // 0: Main, 1: Support
+  const [unassigningTeam, setUnassigningTeam] = useState(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -58,6 +60,29 @@ export default function AreaManagement() {
   };
 
   const handleAssignTeam = async (teamId) => {
+    const teamToAssign = allTeams.find(t => t.teamId === teamId);
+    const targetArea = areas.find(a => a.areaId === assigningAreaId);
+    const hasMainTeam = targetArea?.teams?.some(t => t.type === 0);
+
+    if (teamToAssign?.type === 0 && hasMainTeam) {
+      if (!window.confirm(`Khu vực này đã có đội chính. Bạn có muốn chuyển đội "${teamToAssign.name}" thành Đội phụ để gán vào đây không?`)) {
+        return;
+      }
+      
+      // Chuyển thành đội phụ trước khi gán
+      try {
+        const updateRes = await updateTeam(teamId, { 
+          name: teamToAssign.name,
+          type: 1 
+        });
+        if (!updateRes.success) {
+          return toast.error("Không thể chuyển loại đội: " + updateRes.message);
+        }
+      } catch (error) {
+        return toast.error("Lỗi khi chuyển loại đội");
+      }
+    }
+
     try {
       const res = await assignTeamToArea(teamId, assigningAreaId);
       if (res.success) {
@@ -70,12 +95,44 @@ export default function AreaManagement() {
     }
   };
 
+  const handleUnassignTeam = async () => {
+    if (!unassigningTeam) return;
+    try {
+      // Chỉ gửi các trường cần thiết để tránh lỗi 400 do dữ liệu dư thừa
+      const res = await updateTeam(unassigningTeam.teamId, { 
+        name: unassigningTeam.name,
+        areaId: null, // Gỡ đội bằng cách đặt khu vực về null
+        type: unassigningTeam.type
+      });
+      if (res.success) {
+        toast.success("Gỡ đội khỏi khu vực thành công");
+        setUnassigningTeam(null);
+        fetchInitialData();
+      } else {
+        toast.error(res.message || "Lỗi khi gỡ đội");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi gỡ đội");
+    }
+  };
+
   const handleCreateTeamForArea = async () => {
     if (!newTeamName.trim()) return toast.error("Vui lòng nhập tên đội");
+
+    // Validation: Only one main team per area
+    if (newTeamType === 0) {
+      const targetArea = areas.find(a => a.areaId === assigningAreaId);
+      const hasMainTeam = targetArea?.teams?.some(t => t.type === 0);
+      if (hasMainTeam) {
+        return toast.error(`Khu vực này đã có đội chính. Vui lòng tạo đội phụ.`);
+      }
+    }
+
     try {
       const res = await createTeam({
         name: newTeamName,
-        areaId: assigningAreaId
+        areaId: assigningAreaId,
+        type: newTeamType
       });
       if (res.success) {
         toast.success("Tạo đội và gán vào khu vực thành công");
@@ -240,13 +297,15 @@ export default function AreaManagement() {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => {
+                              const hasMain = area.teams?.some(t => t.type === 0);
                               setAssigningAreaId(area.areaId);
+                              setNewTeamType(hasMain ? 1 : 0);
                               setShowCreateTeamModal(true);
                             }}
                             className="flex items-center gap-1 text-xs font-bold text-green-600 hover:text-green-700 bg-green-50 px-2 py-1 rounded-lg transition-colors"
                           >
                             <Plus className="w-3 h-3" />
-                            Tạo Đội mới
+                            {area.teams?.some(t => t.type === 0) ? "Tạo Đội phụ" : "Tạo Đội mới"}
                           </button>
                           <button
                             onClick={() => {
@@ -256,16 +315,45 @@ export default function AreaManagement() {
                             className="flex items-center gap-1 text-xs font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 px-2 py-1 rounded-lg transition-colors"
                           >
                             <UserPlus className="w-3 h-3" />
-                            Gán Đội
+                            {area.teams?.some(t => t.type === 0) ? "Gán Đội phụ" : "Gán Đội"}
                           </button>
                         </div>
                       </div>
                       {area.teams && area.teams.length > 0 ? (
                         <div className="grid grid-cols-2 gap-3">
                           {area.teams.map(team => (
-                            <div key={team.teamId} className="bg-white p-3 rounded-lg border border-gray-100 flex items-center justify-between">
-                              <span className="text-sm font-medium text-gray-700">{team.name}</span>
-                              <span className="text-xs text-gray-400">#{team.teamId}</span>
+                            <div key={team.teamId} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between shadow-sm hover:border-indigo-200 transition-all">
+                              <div className="flex items-center gap-3">
+                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs ${team.type === 1 ? 'bg-amber-50 text-amber-600' : 'bg-emerald-50 text-emerald-600'}`}>
+                                  {team.type === 1 ? 'P' : 'C'}
+                                </div>
+                                <div>
+                                  <p className="text-sm font-bold text-gray-700">{team.name}</p>
+                                  <p className="text-[10px] text-gray-400 font-medium lowercase tracking-tighter">
+                                    {team.type === 1 ? 'Đội phụ' : 'Đội chính'} • #{team.teamId}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <div className="text-right mr-2">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-sm font-black ${(team.totalReports || 0) >= 5 ? 'text-red-500' : 'text-gray-700'}`}>
+                                      {team.totalReports || 0}
+                                    </span>
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase">Reports</span>
+                                  </div>
+                                  {(team.totalReports || 0) >= 5 && team.type === 0 && (
+                                    <p className="text-[9px] text-red-500 font-bold animate-pulse mt-0.5 uppercase">Quá tải - Chuyển phụ</p>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => setUnassigningTeam(team)}
+                                  className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Gỡ khỏi khu vực"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -280,6 +368,34 @@ export default function AreaManagement() {
           </div>
         </main>
       </div>
+
+      {unassigningTeam && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[70] p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X className="w-8 h-8 text-red-500" />
+            </div>
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Xác nhận gỡ đội</h3>
+            <p className="text-sm text-gray-500 mb-8">
+              Bạn có chắc chắn muốn gỡ đội <span className="font-bold text-gray-800">"{unassigningTeam.name}"</span> khỏi khu vực này không?
+            </p>
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setUnassigningTeam(null)}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Hủy
+              </button>
+              <button 
+                onClick={handleUnassignTeam}
+                className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors shadow-sm"
+              >
+                Gỡ đội
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {selectedArea && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setSelectedArea(null)}>
@@ -365,7 +481,7 @@ export default function AreaManagement() {
                 onClick={handleCreateArea}
                 className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors shadow-sm"
               >
-                {isEditing ? "Cập nhật" : "Tạo khu vực"}
+                Tạo khu vực
               </button>
             </div>
           </div>
@@ -473,6 +589,29 @@ export default function AreaManagement() {
                     onChange={e => setNewTeamName(e.target.value)}
                   />
                   <p className="mt-2 text-[11px] text-gray-400 italic">Đội mới sẽ được gán trực tiếp vào khu vực này.</p>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Loại Đội *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setNewTeamType(0)}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${newTeamType === 0 
+                        ? 'bg-emerald-50 border-emerald-500 text-emerald-700' 
+                        : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                    >
+                      Đội Chính
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewTeamType(1)}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all border ${newTeamType === 1 
+                        ? 'bg-amber-50 border-amber-500 text-amber-700' 
+                        : 'bg-white border-gray-100 text-gray-400 hover:bg-gray-50'}`}
+                    >
+                      Đội Phụ
+                    </button>
+                  </div>
                 </div>
               </div>
 

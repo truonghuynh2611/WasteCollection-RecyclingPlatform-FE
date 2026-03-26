@@ -15,7 +15,7 @@ export default function TeamManagement() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
-  const [formData, setFormData] = useState({ name: "", areaId: "" });
+  const [formData, setFormData] = useState({ name: "", areaId: "", type: 0 }); // 0: Main, 1: Support
 
   // New state for member assignment
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -47,13 +47,26 @@ export default function TeamManagement() {
     setEditingTeam(team);
     setFormData({
       name: team ? team.name : "",
-      areaId: team ? team.areaId : (areas.length > 0 ? areas[0].areaId : "")
+      areaId: team ? team.areaId : (areas.length > 0 ? areas[0].areaId : ""),
+      type: team ? (team.type !== undefined ? team.type : 0) : 0
     });
     setShowModal(true);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Validation: Only one main team per area
+    if (formData.type === 0) {
+      const existingMainTeam = teams.find(t => 
+        t.areaId === formData.areaId && 
+        t.type === 0 && 
+        (!editingTeam || t.teamId !== editingTeam.teamId)
+      );
+      if (existingMainTeam) {
+        toast.error(`Khu vực này đã có đội chính (${existingMainTeam.name}). Vui lòng chọn đội phụ hoặc đổi khu vực.`);
+        return;
+      }
+    }
     if (!formData.name.trim()) return toast.error("Vui lòng nhập tên đội");
     if (!formData.areaId) return toast.error("Vui lòng chọn khu vực");
 
@@ -184,6 +197,9 @@ export default function TeamManagement() {
                           <span className="text-xs text-gray-500 font-medium">
                             #{team.teamId} • {areas.find(a => a.areaId === team.areaId)?.name || `Area ID: ${team.areaId}`}
                           </span>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${team.type === 1 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                            {team.type === 1 ? 'Đội Phụ' : 'Đội Chính'}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -290,6 +306,33 @@ export default function TeamManagement() {
                     value={formData.name}
                     onChange={e => setFormData({ ...formData, name: e.target.value })}
                   />
+                </div>
+
+                <div>
+                   <label className="block text-sm font-semibold text-gray-700 mb-2">Loại Đội</label>
+                   <div className="grid grid-cols-2 gap-3">
+                     <button
+                       type="button"
+                       onClick={() => setFormData({ ...formData, type: 0 })}
+                       className={`py-3 rounded-2xl text-sm font-bold transition-all border ${formData.type === 0 
+                         ? 'bg-emerald-50 border-emerald-500 text-emerald-700 shadow-sm shadow-emerald-100' 
+                         : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                     >
+                       Đội Chính
+                     </button>
+                     <button
+                       type="button"
+                       onClick={() => setFormData({ ...formData, type: 1 })}
+                       className={`py-3 rounded-2xl text-sm font-bold transition-all border ${formData.type === 1 
+                         ? 'bg-amber-50 border-amber-500 text-amber-700 shadow-sm shadow-amber-100' 
+                         : 'bg-white border-gray-100 text-gray-500 hover:bg-gray-50'}`}
+                     >
+                       Đội Phụ
+                     </button>
+                   </div>
+                   <p className="mt-2 text-[11px] text-gray-400 italic">
+                     * Đội chính xử lý tối đa 5 report, sau đó sẽ chuyển cho đội phụ.
+                   </p>
                 </div>
 
                 <div>
