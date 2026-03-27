@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
-import { Search, Filter, MapPin, Clock, X, ChevronRight, Scale, Info, ClipboardList, Recycle, Camera } from "lucide-react";
+import { Search, Filter, MapPin, Clock, X, ChevronRight, Scale, Info, ClipboardList, Recycle, Camera, Trash2 } from "lucide-react";
 import { taskService } from "../../api/task";
 import { getProfile } from "../../api/collector";
 import { submitCompletion } from "../../api/waste";
 import { default as Toast } from "../common/Toast";
-import { Camera, Trash2 } from "lucide-react";
 
 /**
  * COMPONENT QUẢN LÝ DANH SÁCH NHIỆM VỤ CỦA COLLECTOR
