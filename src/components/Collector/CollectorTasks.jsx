@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { Search, Filter, MapPin, Clock, X, ChevronRight, Scale, Info, ClipboardList, Recycle, Camera, Trash2 } from "lucide-react";
+import { useAuth } from "../../contexts/AuthContext";
 import { taskService } from "../../api/task";
 import { getProfile } from "../../api/collector";
-import { submitCompletion } from "../../api/waste";
+import { submitCompletion, confirmWasteReport, processWasteReport } from "../../api/waste";
 import { default as Toast } from "../common/Toast";
 
 /**
@@ -89,10 +90,10 @@ export default function CollectorTasks() {
       if (selectedTask?.reportId === id) {
         setSelectedTask({ ...selectedTask, status: newStatus });
       }
-      toast.success("Cập nhật trạng thái thành công");
+      setToast({ message: "Cập nhật trạng thái thành công", type: "success" });
     } catch (err) {
       console.error("Lỗi khi cập nhật trạng thái:", err);
-      toast.error("Cập nhật trạng thái thất bại.");
+      setToast({ message: "Cập nhật trạng thái thất bại.", type: "error" });
     }
   };
 
@@ -100,7 +101,7 @@ export default function CollectorTasks() {
     try {
       const res = await confirmWasteReport(reportId);
       if (res) {
-        toast.success("Đã xác nhận nhận nhiệm vụ thành công!");
+        setToast({ message: "Đã xác nhận nhận nhiệm vụ thành công!", type: "success" });
         fetchTasks();
         if (selectedTask?.reportId === reportId) {
           setSelectedTask({ ...selectedTask, status: "OnTheWay" });
@@ -110,12 +111,12 @@ export default function CollectorTasks() {
       const errorMsg = typeof err.response?.data === 'string'
         ? err.response.data
         : err.response?.data?.message || "Lỗi khi xác nhận nhiệm vụ";
-      toast.error(errorMsg);
+      setToast({ message: errorMsg, type: "error" });
     }
   };
 
   const handleSubmitCompletion = async (reportId) => {
-    setIsSubmitting(true);
+    setSubmitting(true);
     try {
       const res = await processWasteReport({
         reportId,
@@ -124,8 +125,7 @@ export default function CollectorTasks() {
       });
 
       if (res) {
-        toast.success("Nhiệm vụ đã hoàn tất thành công! Điểm đã được cộng cho công dân.");
-        setEvidenceUrl("");
+        setToast({ message: "Nhiệm vụ đã hoàn tất thành công! Điểm đã được cộng cho công dân.", type: "success" });
         fetchTasks();
         setSelectedTask(null); // Close modal on success
       }
@@ -133,9 +133,9 @@ export default function CollectorTasks() {
       const errorMsg = typeof err.response?.data === 'string'
         ? err.response.data
         : err.response?.data?.message || "Lỗi khi gửi báo cáo";
-      toast.error(errorMsg);
+      setToast({ message: errorMsg, type: "error" });
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
 
@@ -149,11 +149,13 @@ export default function CollectorTasks() {
     return matchesTab && matchesSearch;
   });
 
-  const statusColors = {
-    "Chờ": "bg-gray-100 text-gray-500 border-gray-200",
-    "Đang thu gom": "bg-blue-100 text-blue-600 border-blue-200",
-    "Hoàn thành": "bg-green-100 text-green-600 border-green-200",
-    "Đang chờ admin xác nhận": "bg-amber-100 text-amber-600 border-amber-200",
+  const statusMapping = {
+    "Chờ": { label: "Chờ", color: "bg-gray-100 text-gray-500 border-gray-200" },
+    "Đang thu gom": { label: "Đang thu gom", color: "bg-blue-100 text-blue-600 border-blue-200" },
+    "OnTheWay": { label: "Đang tới", color: "bg-blue-100 text-blue-600 border-blue-200" },
+    "Accepted": { label: "Đã nhận", color: "bg-blue-100 text-blue-600 border-blue-200" },
+    "Hoàn thành": { label: "Hoàn thành", color: "bg-green-100 text-green-600 border-green-200" },
+    "Đang chờ admin xác nhận": { label: "Đang chờ admin xác nhận", color: "bg-amber-100 text-amber-600 border-amber-200" },
   };
 
   const handleFileChange = (e) => {
