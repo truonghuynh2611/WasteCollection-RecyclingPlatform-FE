@@ -19,14 +19,15 @@ import ProtectedRoute from "./components/Routes/ProtectedRoute.jsx";
 import ReportManagement from "./components/Page/ReportManagement.jsx";
 import UserManagement from "./components/Page/UserManagement.jsx";
 import CollectorManagement from "./components/Page/CollectorManagement.jsx";
-import AreaManagement from "./components/Page/AreaManagement.jsx";
+import LocationManagement from "./components/Page/LocationManagement.jsx";
 import TeamManagement from "./components/Page/TeamManagement.jsx";
-import DistrictManagement from "./components/Page/DistrictManagement.jsx";
 import VoucherManagement from "./components/Page/VoucherManagement.jsx";
 import CollectorLayout from "./components/Collector/CollectorLayout.jsx";
 import CollectorDashboard from "./components/Collector/CollectorDashboard.jsx";
 import CollectorTasks from "./components/Collector/CollectorTasks.jsx";
 import CollectorSchedule from "./components/Collector/CollectorSchedule.jsx";
+import CollectorMembers from "./components/Collector/CollectorMembers.jsx";
+import LeaderReport from "./components/Collector/LeaderReport.jsx";
 import ManagerDashboard from "./components/Manager/ManagerDashboard.jsx";
 import ManagerCollector from "./components/Manager/ManagerCollector.jsx";
 import ManagerSchedule from "./components/Manager/ManagerSchedule.jsx";
@@ -63,6 +64,10 @@ function App() {
               <Route index element={<CollectorDashboard />} />
               {/* Trang quản lý nhiệm vụ */}
               <Route path="tasks" element={<CollectorTasks />} />
+              {/* Trang danh sách thành viên trong team */}
+              <Route path="members" element={<CollectorMembers />} />
+              {/* Trang báo cáo nhiệm vụ - chỉ dành cho Leader */}
+              <Route path="report" element={<LeaderReport />} />
               {/* Trang lịch làm việc (Vẫn giữ route nhưng đã ẩn link trên Sidebar) */}
               <Route path="schedule" element={<CollectorSchedule />} />
             </Route>
@@ -191,10 +196,15 @@ function App() {
                     }
                   />
                   <Route
-                    path="/areaManagement"
+                    path="/locationManagement"
                     element={
+<<<<<<< HEAD
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <AreaManagement />
+=======
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                        <LocationManagement />
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                       </ProtectedRoute>
                     }
                   />
@@ -207,6 +217,7 @@ function App() {
                     }
                   />
                   <Route
+<<<<<<< HEAD
                     path="/districtManagement"
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
@@ -215,6 +226,8 @@ function App() {
                     }
                   />
                   <Route
+=======
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                     path="/voucherManagement"
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>

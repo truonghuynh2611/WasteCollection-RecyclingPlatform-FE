@@ -22,9 +22,8 @@ const mainMenuItems = [
   { id: "requests", label: "Yêu cầu thu gom", icon: ClipboardList, path: "/reportManagement" },
   { id: "users", label: "Quản lý người dùng", icon: Users, path: "/userManagement" },
   { id: "collector", label: "Quản lý người thu gom", icon: UserCog, path: "/collectorManagement" },
-  { id: "area", label: "Quản lý khu vực", icon: Map, path: "/areaManagement" },
+  { id: "location", label: "Quản lý khu vực", icon: MapPin, path: "/locationManagement" },
   { id: "team", label: "Quản lý đội ngũ", icon: Users, path: "/teamManagement" },
-  { id: "district", label: "Quản lý Quận/Huyện", icon: MapPin, path: "/districtManagement" },
 ];
 
 /**

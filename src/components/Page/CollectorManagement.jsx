@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Search, UserPlus, Eye, Lock, Unlock, ChevronDown, Briefcase, Star, X } from "lucide-react";
 import Sidebar from "../Layouts/Sidebar";
-import { getAllCollectors, createCollector, getAllTeams } from "../../api/team";
+import { getAllCollectors, createCollector, getAllTeams, toggleCollectorStatus } from "../../api/team";
 import { toast } from "react-hot-toast";
 
 function StarRating({ value }) {
@@ -31,6 +31,8 @@ export default function CollectorManagement() {
     phone: "",
     teamId: "",
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
 
   useEffect(() => {
     fetchData();
@@ -71,18 +73,33 @@ export default function CollectorManagement() {
     }
   };
 
+  const handleToggleStatus = async (collector) => {
+    try {
+      const res = await toggleCollectorStatus(collector.collectorId);
+      if (res.success) {
+        toast.success(res.message || "Đã cập nhật trạng thái");
+        fetchData();
+        if (selectedStaff && selectedStaff.collectorId === collector.collectorId) {
+          setSelectedStaff({ ...selectedStaff, status: !selectedStaff.status });
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi cập nhật trạng thái");
+    }
+  };
+
   const filtered = staff.filter(s => {
     const teamName = teams.find(t => t.teamId === s.teamId)?.name || "";
-    const matchSearch = s.fullName.toLowerCase().includes(search.toLowerCase()) || 
-                       teamName.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = s.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      teamName.toLowerCase().includes(search.toLowerCase());
     const statusText = s.status ? "Hoạt động" : "Bị khóa";
     const matchStatus = filterStatus === "Tất cả" || statusText === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const statusStyle = { 
-    "Hoạt động": "bg-green-100 text-green-700", 
-    "Bị khóa": "bg-red-100 text-red-600" 
+  const statusStyle = {
+    "Hoạt động": "bg-green-100 text-green-700",
+    "Bị khóa": "bg-red-100 text-red-600"
   };
 
   return (
@@ -90,13 +107,13 @@ export default function CollectorManagement() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-7xl mx-auto">
+          <div className="w-full">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý người thu gom</h1>
                 <p className="text-gray-500 mt-1">Quản lý đội ngũ người thu gom rác theo khu vực</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
               >
@@ -127,14 +144,14 @@ export default function CollectorManagement() {
                   placeholder="Tìm kiếm theo tên, team..."
                   className="w-full pl-9 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                   value={search}
-                  onChange={e => setSearch(e.target.value)}
+                  onChange={e => { setSearch(e.target.value); setCurrentPage(1); }}
                 />
               </div>
               <div className="relative">
                 <select
                   className="pl-4 pr-8 py-2.5 border border-gray-200 rounded-lg text-sm appearance-none focus:outline-none focus:ring-2 focus:ring-green-500"
                   value={filterStatus}
-                  onChange={e => setFilterStatus(e.target.value)}
+                  onChange={e => { setFilterStatus(e.target.value); setCurrentPage(1); }}
                 >
                   <option>Tất cả</option>
                   <option>Hoạt động</option>
@@ -145,12 +162,12 @@ export default function CollectorManagement() {
               <p className="text-sm text-gray-500 ml-auto">{filtered.length} người thu gom</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {loading ? (
-                Array(6).fill(0).map((_, i) => (
+                Array(10).fill(0).map((_, i) => (
                   <div key={i} className="h-48 bg-white rounded-xl border border-gray-200 animate-pulse" />
                 ))
-              ) : filtered.map(s => {
+              ) : filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(s => {
                 const team = teams.find(t => t.teamId === s.teamId);
                 const statusText = s.status ? "Hoạt động" : "Bị khóa";
                 return (
@@ -173,35 +190,96 @@ export default function CollectorManagement() {
                       </span>
                     </div>
 
-                    <div className="space-y-2 text-sm mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 text-xs">Vai trò</span>
-                        <span className={`font-bold text-[10px] uppercase ${s.role === 'Leader' ? 'text-amber-600' : 'text-gray-400'}`}>
+                    <div className="flex flex-col items-center mt-2 mb-4">
+                      <div className="relative mb-3">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center text-white font-bold text-2xl shadow-md rotate-3 group-hover:rotate-0 transition-transform ${s.role === 'Leader' ? 'bg-gradient-to-br from-amber-400 to-orange-500' : 'bg-gradient-to-br from-indigo-400 to-blue-600'}`}>
+                          {s.fullName.charAt(0)}
+                        </div>
+                        <span className={`absolute -bottom-2 left-1/2 -translate-x-1/2 text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shadow-sm border border-white whitespace-nowrap ${statusStyle[statusText]}`}>
+                          {statusText}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-gray-800 text-center mt-2 w-full truncate px-2">{s.fullName}</h3>
+                      <div className="flex items-center justify-center gap-1.5 mt-1 w-full text-center">
+                        <Briefcase className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <span className="text-xs text-gray-500 truncate mt-0.5" title={team?.name || "Chưa gán đội"}>{team?.name || "Chưa gán đội"}</span>
+                      </div>
+                    </div>
+
+                    <div className="w-full space-y-2.5 text-sm mb-5 bg-gray-50/80 p-3 rounded-xl border border-gray-100/80">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-500 text-xs font-medium">Chức vụ</span>
+                        <span className={`font-bold text-[10px] uppercase ${s.role === 'Leader' ? 'text-amber-600 bg-amber-50 border border-amber-200/50 px-2 py-0.5 rounded-lg' : 'text-gray-500 bg-white border border-gray-200 px-2 py-0.5 rounded-lg'}`}>
                           {s.role === 'Leader' ? "Trưởng nhóm" : "Thành viên"}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-gray-500 text-xs">Đánh giá</span>
+                        <span className="text-gray-500 text-xs font-medium">Đánh giá</span>
                         <StarRating value={s.rating} />
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500 text-xs">Email</span>
-                        <span className="text-gray-700 font-medium truncate ml-4 block">{s.email}</span>
                       </div>
                     </div>
 
-                    <div className="flex gap-2 pt-3 border-t border-gray-50">
-                      <button
-                        onClick={() => setSelectedStaff(s)}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 text-sm text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
-                      >
-                        <Eye className="w-4 h-4" /> Chi tiết
-                      </button>
-                    </div>
+                    <button
+                      onClick={() => setSelectedStaff(s)}
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 text-sm font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-all mt-auto border border-indigo-100 hover:border-indigo-600 shadow-sm"
+                    >
+                      <Eye className="w-4 h-4" /> Xem chi tiết
+                    </button>
                   </div>
                 );
               })}
             </div>
+
+            {/* Pagination Controls */}
+            {!loading && filtered.length > itemsPerPage && (
+              <div className="flex justify-center items-center mt-8 gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Trước
+                </button>
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.ceil(filtered.length / itemsPerPage) }).map((_, idx) => {
+                    // Simple pagination display logic to prevent too many buttons if large
+                    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+                    if (
+                      totalPages > 7 &&
+                      idx !== 0 &&
+                      idx !== totalPages - 1 &&
+                      Math.abs(currentPage - 1 - idx) > 2
+                    ) {
+                      if (Math.abs(currentPage - 1 - idx) === 3) {
+                        return <span key={idx} className="px-2 text-gray-400">...</span>;
+                      }
+                      return null;
+                    }
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => setCurrentPage(idx + 1)}
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === idx + 1
+                            ? "bg-green-500 text-white shadow-sm"
+                            : "text-gray-600 hover:bg-gray-100"
+                          }`}
+                      >
+                        {idx + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(Math.ceil(filtered.length / itemsPerPage), p + 1))}
+                  disabled={currentPage === Math.ceil(filtered.length / itemsPerPage)}
+                  className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Sau
+                </button>
+              </div>
+            )}
+
           </div>
         </main>
       </div>
@@ -219,7 +297,7 @@ export default function CollectorManagement() {
                 <p className="text-xs text-amber-600 font-bold uppercase mt-1">{selectedStaff.role}</p>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               {[
                 ["User ID", `#${selectedStaff.userId}`],
@@ -234,10 +312,18 @@ export default function CollectorManagement() {
                 </div>
               ))}
             </div>
-            
-            <button onClick={() => setSelectedStaff(null)} className="mt-6 w-full py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
-              Đóng
-            </button>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => handleToggleStatus(selectedStaff)}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-colors ${selectedStaff.status ? 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-100' : 'bg-green-50 hover:bg-green-100 text-green-600 border border-green-100'}`}
+              >
+                {selectedStaff.status ? <><Lock className="w-4 h-4" /> Khóa tài khoản</> : <><Unlock className="w-4 h-4" /> Mở khóa tài khoản</>}
+              </button>
+              <button onClick={() => setSelectedStaff(null)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-bold transition-colors border border-gray-200">
+                Đóng
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -251,7 +337,7 @@ export default function CollectorManagement() {
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            
+
             <form onSubmit={handleAddCollector} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
@@ -298,7 +384,7 @@ export default function CollectorManagement() {
                   ))}
                 </select>
               </div>
-              
+
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
                   Hủy

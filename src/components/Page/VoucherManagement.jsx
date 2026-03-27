@@ -168,7 +168,7 @@ export default function VoucherManagement() {
       <Sidebar />
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto p-8">
-          <div className="max-w-6xl mx-auto">
+          <div className="w-full">
             
             {/* PHẦN TIÊU ĐỀ (HEADER) */}
             <div className="flex items-center justify-between mb-8">

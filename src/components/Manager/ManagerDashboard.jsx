@@ -1,13 +1,13 @@
 // Nhập các hook từ React
 import { useState, useEffect } from "react";
 // Nhập các icon minh họa từ thư viện lucide-react
-import { Users, CalendarDays, TrendingUp, AlertCircle } from "lucide-react";
+import { Users, CalendarDays, TrendingUp, AlertCircle, Clock } from "lucide-react";
 // Nhập Sidebar dành riêng cho Manager
 import ManagerSidebar from "./ManagerSidebar";
 // Nhập component thả xuống hiển thị thông báo
 import NotificationDropdown from "../common/NotificationDropdown";
 // Nhập API service để lấy số liệu thống kê
-import { getCitizenStats } from "../../api/user";
+import { getAdminDashboardStats } from "../../api/dashboard";
 
 /**
  * COMPONENT BẢNG ĐIỀU KHIỂN DÀNH CHO QUẢN LÝ (MANAGER)
@@ -15,12 +15,7 @@ import { getCitizenStats } from "../../api/user";
  */
 export default function ManagerDashboard() {
   // State lưu trữ các chỉ số thống kê (Stats)
-  const [stats, setStats] = useState([
-    { label: "Người thu gom khu vực", value: 0, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-    { label: "Ca làm hôm nay", value: 0, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
-    { label: "Yêu cầu chờ xử lý", value: 0, icon: AlertCircle, color: "text-yellow-600", bg: "bg-yellow-50" },
-    { label: "Tỷ lệ hoàn thành (Tuần)", value: "0%", icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
-  ]);
+  const [statsData, setStatsData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   /**
@@ -36,15 +31,9 @@ export default function ManagerDashboard() {
   const fetchStats = async () => {
     try {
       setLoading(true);
-      const data = await getCitizenStats();
+      const data = await getAdminDashboardStats();
       if (data) {
-        // Cập nhật lại mảng stats với dữ liệu thật từ API
-        setStats([
-          { label: "Tổng người dùng", value: data.totalCitizens, icon: Users, color: "text-blue-600", bg: "bg-blue-50" },
-          { label: "Người dùng mới", value: data.activeCitizens, icon: CalendarDays, color: "text-green-600", bg: "bg-green-50" },
-          { label: "Điểm hệ thống", value: data.totalPoints, icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
-          { label: "Yêu cầu chờ xử lý", value: 5, icon: AlertCircle, color: "text-yellow-600", bg: "bg-yellow-50" },
-        ]);
+        setStatsData(data);
       }
     } catch (error) {
       console.error("Failed to fetch dashboard stats:", error);
@@ -52,6 +41,13 @@ export default function ManagerDashboard() {
       setLoading(false);
     }
   };
+
+  const statCards = [
+    { label: "Tổng báo cáo", value: statsData?.totalReports || 0, icon: Clock, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Chờ phê duyệt", value: statsData?.pendingReports || 0, icon: AlertCircle, color: "text-orange-600", bg: "bg-orange-50" },
+    { label: "Tổng cư dân", value: statsData?.totalCitizens || 0, icon: Users, color: "text-green-600", bg: "bg-green-50" },
+    { label: "Điểm đã cấp", value: statsData?.totalPointsAwarded || 0, icon: TrendingUp, color: "text-indigo-600", bg: "bg-indigo-50" },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -65,7 +61,7 @@ export default function ManagerDashboard() {
         <header className="bg-white border-b border-gray-200 px-8 py-5 flex items-center justify-between shadow-sm z-10">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Xin chào Quản lý! 👋</h1>
-            <p className="text-sm text-gray-500 mt-1">Tổng quan hiệu suất khu vực của bạn</p>
+            <p className="text-sm text-gray-500 mt-1">Tổng quan hiệu suất toàn hệ thống</p>
           </div>
           <div className="flex items-center gap-4">
             <NotificationDropdown />
@@ -75,8 +71,8 @@ export default function ManagerDashboard() {
         <main className="flex-1 p-8 overflow-auto">
           
           {/* HÀNG 1: HIỂN THỊ CÁC CARD CHỈ SỐ (STATS) */}
-          <div className="grid grid-cols-4 gap-6 mb-8">
-            {stats.map((s, i) => {
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            {statCards.map((s, i) => {
               const Icon = s.icon;
               return (
                 <div key={i} className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-md transition-shadow ${loading ? 'animate-pulse' : ''}`}>
@@ -86,61 +82,83 @@ export default function ManagerDashboard() {
                       <Icon className={`w-5 h-5 ${s.color}`} />
                     </div>
                   </div>
-                  <p className="text-3xl font-bold text-gray-800">{loading ? '...' : s.value}</p>
+                  <p className="text-3xl font-bold text-gray-800">
+                    {loading ? '...' : (typeof s.value === 'number' ? s.value.toLocaleString() : s.value)}
+                  </p>
                 </div>
               );
             })}
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* CỘT TRÁI: HOẠT ĐỘNG GẦN ĐÂY (Timeline) */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Hoạt động gần đây</h2>
-              <div className="space-y-4">
-                {[
-                  { text: "Nguyễn Văn An đã hoàn thành ca làm sáng", time: "10 phút trước", status: "success" },
-                  { text: "Có 2 yêu cầu thu gom mới tại đường Lê Lợi", time: "1 giờ trước", status: "warning" },
-                  { text: "Cập nhật lịch làm việc tuần tới", time: "2 giờ trước", status: "info" },
-                ].map((item, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div className="mt-1">
-                      {/* Chấm tròn chỉ thị trạng thái (Thành công/Cảnh báo/Tin tức) */}
-                      <div className={`w-2 h-2 rounded-full ${
-                        item.status === 'success' ? 'bg-green-500' : 
-                        item.status === 'warning' ? 'bg-yellow-500' : 'bg-blue-500'
-                      }`} />
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold text-gray-800">Hoạt động gần đây</h2>
+                    <button onClick={fetchStats} className="text-sm text-emerald-600 hover:underline">Làm mới</button>
+                </div>
+              <div className="space-y-6">
+                {statsData?.recentActivities?.length > 0 ? (
+                    statsData.recentActivities.map((item, i) => (
+                    <div key={i} className="flex gap-4 relative">
+                        {i !== statsData.recentActivities.length - 1 && (
+                            <div className="absolute left-[7px] top-6 w-0.5 h-10 bg-gray-100" />
+                        )}
+                        <div className="mt-1.5 relative z-10">
+                            <div className={`w-3.5 h-3.5 rounded-full border-2 border-white shadow-sm ${
+                                item.status === 'Collected' ? 'bg-green-500' : 
+                                item.status === 'Pending' ? 'bg-blue-500' : 
+                                item.status === 'Failed' ? 'bg-red-500' : 'bg-yellow-500'
+                            }`} />
+                        </div>
+                        <div>
+                            <p className="text-sm text-gray-800 font-medium">{item.message}</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                                {new Date(item.timestamp).toLocaleString("vi-VN")}
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-800">{item.text}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{item.time}</p>
-                    </div>
-                  </div>
-                ))}
+                    ))
+                ) : (
+                    <p className="text-gray-400 text-sm italic text-center py-4">Chưa có hoạt động nào.</p>
+                )}
               </div>
             </div>
 
-            {/* CỘT PHẢI: NHÂN VIÊN ĐANG LÀM VIỆC (Real-time monitoring) */}
+            {/* CỘT PHẢI: TRẠNG THÁI HIỆN TẠI (Stats Overview) */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-              <h2 className="text-lg font-bold text-gray-800 mb-4">Người thu gom đang làm việc</h2>
-              <div className="space-y-3">
-                {[
-                  { name: "Nguyễn Văn An", task: "Thu gom nhựa y tế", area: "Khu vực 1A" },
-                  { name: "Trần Thị Bích", task: "Thu gom giấy báo", area: "Khu vực 1A" },
-                ].map((collector, i) => (
-                  <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
+              <h2 className="text-lg font-bold text-gray-800 mb-6">Trạng thái hệ thống</h2>
+              <div className="space-y-4">
+                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs font-bold">
-                        {collector.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-gray-800">{collector.name}</p>
-                        <p className="text-xs text-gray-500">{collector.task}</p>
-                      </div>
+                        <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center font-bold">
+                            {statsData?.activeTeams || 0}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">Đội thu gom hoạt động</span>
                     </div>
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-md">{collector.area}</span>
-                  </div>
-                ))}
+                    <span className="text-xs text-blue-600 font-bold">TRỰC TUYẾN</span>
+                 </div>
+                 
+                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center font-bold">
+                            {statsData?.completedReports || 0}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">Yêu cầu đã hoàn tất</span>
+                    </div>
+                    <span className="text-xs text-emerald-600 font-bold">THÀNH CÔNG</span>
+                 </div>
+
+                 <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-lg flex items-center justify-center font-bold">
+                            {statsData?.processingReports || 0}
+                        </div>
+                        <span className="text-sm font-medium text-gray-700">Đang được xử lý</span>
+                    </div>
+                    <span className="text-xs text-amber-600 font-bold">TIẾN HÀNH</span>
+                 </div>
               </div>
             </div>
           </div>
