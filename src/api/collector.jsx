@@ -23,3 +23,10 @@ export const deleteReportByLeader = async (reportId) => {
   const response = await axiosClient.delete(`/Collector/leader/reports/${reportId}`);
   return response.data;
 };
+export const getProfile = async () => {
+    const response = await axiosClient.get("/Collector/profile");
+    if (response.data && response.data.success) {
+        return response.data.data;
+    }
+    throw new Error(response.data?.message || "Lỗi khi lấy thông tin cá nhân");
+};

@@ -190,7 +190,7 @@ function App() {
                   <Route
                     path="/collectorManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <CollectorManagement />
                       </ProtectedRoute>
                     }
@@ -198,20 +198,36 @@ function App() {
                   <Route
                     path="/locationManagement"
                     element={
+<<<<<<< HEAD
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                        <AreaManagement />
+=======
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
                         <LocationManagement />
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                       </ProtectedRoute>
                     }
                   />
                   <Route
                     path="/teamManagement"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <TeamManagement />
                       </ProtectedRoute>
                     }
                   />
                   <Route
+<<<<<<< HEAD
+                    path="/districtManagement"
+                    element={
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
+                        <DistrictManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+=======
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                     path="/voucherManagement"
                     element={
                       <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
@@ -225,7 +241,7 @@ function App() {
                   <Route
                     path="/settings"
                     element={
-                      <ProtectedRoute allowedRoles={[ROLES.ADMIN, ROLES.AREA_MANAGER]}>
+                      <ProtectedRoute allowedRoles={[ROLES.ADMIN]}>
                         <PointConfiguration />
                       </ProtectedRoute>
                     }

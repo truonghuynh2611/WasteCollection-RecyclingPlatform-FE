@@ -18,7 +18,11 @@ export default function TeamManagement() {
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editingTeam, setEditingTeam] = useState(null);
+<<<<<<< HEAD
+  const [formData, setFormData] = useState({ name: "" });
+=======
   const [formData, setFormData] = useState({ name: "", areaId: "", type: 0 });
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
 
   // State for Leader/Member selection in create modal
   const [availableCollectors, setAvailableCollectors] = useState([]);
@@ -57,9 +61,13 @@ export default function TeamManagement() {
   const handleOpenModal = async (team = null) => {
     setEditingTeam(team);
     setFormData({
+<<<<<<< HEAD
+      name: team ? team.name : ""
+=======
       name: team ? team.name : "",
       areaId: team ? team.areaId : "",
       type: team ? team.type : 0
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
     });
     setSelectedLeader("");
     setSelectedMembers([]);
@@ -82,7 +90,6 @@ export default function TeamManagement() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return toast.error("Vui lòng nhập tên đội");
-    if (!formData.areaId) return toast.error("Vui lòng chọn khu vực");
 
     if (!editingTeam) {
       if (!selectedLeader) return toast.error("Vui lòng chọn 1 Leader");
@@ -161,6 +168,17 @@ export default function TeamManagement() {
     }
   };
 
+  const handleRemoveMember = async (teamId, collectorId) => {
+    if (!window.confirm("Bạn có chắc muốn gỡ nhân viên này khỏi đội?")) return;
+    try {
+      await removeCollectorFromTeam({ teamId, collectorId });
+      toast.success("Đã gỡ thành viên khỏi đội");
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi khi gỡ thành viên");
+    }
+  };
+
   const handleOpenAssignModal = async (team) => {
     try {
       setAssignTargetTeam(team);
@@ -186,7 +204,12 @@ export default function TeamManagement() {
         role: parseInt(role)
       });
       if (res.success) {
+<<<<<<< HEAD
+        toast.success("Thêm thành viên thành công");
+        setShowAssignModal(false);
+=======
         toast.success("Gán thành viên thành công");
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
         fetchData();
         handleOpenAssignModal(assignTargetTeam);
       }
@@ -263,13 +286,25 @@ export default function TeamManagement() {
                         <Users className="w-7 h-7 text-indigo-600" />
                       </div>
                       <div>
+<<<<<<< HEAD
+                        <h3 className="text-xl font-bold text-gray-800">{team.name}</h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-gray-500 font-medium">
+                            #{team.teamId} • {team.areaName || "Chưa gán khu vực"}
+=======
                         <div className="flex items-center gap-3">
                           <h3 className="text-xl font-bold text-gray-800">{team.name}</h3>
                           <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm ${
                             team.type === 0 ? 'bg-indigo-600 text-white' : 'bg-amber-500 text-white'
                           }`}>
                             {team.type === 0 ? "Đội Chính" : "Đội Phụ"}
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                           </span>
+                          {team.areaId && (
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${team.type === 1 ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                              {team.type === 1 ? 'Đội Phụ' : 'Đội Chính'}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 mt-2">
                           <div className="flex items-center gap-1.5 bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
@@ -303,6 +338,52 @@ export default function TeamManagement() {
 
                   {/* Body: Leader + Members */}
                   <div className="p-6 bg-gray-50/30">
+<<<<<<< HEAD
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest">Thành viên đội ({team.collectors?.length || 0})</h4>
+                      <button
+                        onClick={() => handleOpenAssignModal(team)}
+                        className="text-xs font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1 transition-colors"
+                      >
+                        <UserPlus className="w-3 h-3" /> Thêm thành viên
+                      </button>
+                    </div>
+
+                    {team.collectors && team.collectors.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {team.collectors.map(member => (
+                          <div key={member.collectorId} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-center justify-between group/member">
+                            <div className="flex items-center gap-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${member.role === 'Leader' ? 'bg-amber-500 shadow-lg shadow-amber-100' : 'bg-indigo-400'}`}>
+                                {member.fullName.charAt(0)}
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-800 truncate">{member.fullName}</p>
+                                <p className={`text-[10px] font-bold uppercase tracking-tighter ${member.role === 'Leader' ? 'text-amber-600' : 'text-gray-400'}`}>
+                                  {member.role === 'Leader' ? 'Trưởng nhóm' : 'Thành viên'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <button
+                                onClick={() => handleToggleLeader(team.teamId, member.collectorId, member.role === 'Leader')}
+                                className={`p-2 rounded-lg transition-all ${member.role === 'Leader'
+                                    ? 'bg-amber-100 text-amber-600'
+                                    : 'text-gray-300 hover:text-amber-600 hover:bg-amber-50'
+                                  }`}
+                                title={member.role === 'Leader' ? "Gỡ chức Trưởng nhóm" : "Cử làm Trưởng nhóm"}
+                              >
+                                <Shield className={`w-4 h-4 ${member.role === 'Leader' ? 'fill-amber-500/20' : ''}`} />
+                              </button>
+                              <button
+                                onClick={() => handleRemoveMember(team.teamId, member.collectorId)}
+                                className="p-2 text-gray-300 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                title="Gỡ khỏi đội"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+=======
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       {/* Leader */}
                       <div>
@@ -325,6 +406,7 @@ export default function TeamManagement() {
                             >
                               <Shield className="w-4 h-4 fill-amber-500/20" />
                             </button>
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                           </div>
                         ) : (
                           <button
@@ -335,6 +417,11 @@ export default function TeamManagement() {
                           </button>
                         )}
                       </div>
+<<<<<<< HEAD
+                    ) : (
+                      <div className="text-center py-6">
+                        <p className="text-sm text-gray-400 italic">Đội chưa có thành viên. Hãy thêm người thu gom vào đội này.</p>
+=======
 
                       {/* Members */}
                       <div>
@@ -372,6 +459,7 @@ export default function TeamManagement() {
                             <p className="text-xs text-gray-400 italic">Chưa có thành viên</p>
                           </div>
                         )}
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                       </div>
                     </div>
                   </div>
@@ -576,6 +664,39 @@ export default function TeamManagement() {
                 )}
               </div>
 
+<<<<<<< HEAD
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">Tên Đội</label>
+                  <input
+                    type="text"
+                    placeholder="VD: Đội Cơ Động 1..."
+                    className="w-full px-4 py-3 border border-gray-200 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                    value={formData.name}
+                    onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  />
+                </div>
+
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-3.5 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm transition-all"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm shadow-lg shadow-indigo-200 transition-all"
+                  >
+                    {editingTeam ? "Cập nhật" : "Tạo Đội"}
+                  </button>
+                </div>
+              </form>
+            </div>
+            <div className="h-2 bg-gradient-to-r from-indigo-500 to-purple-500" />
+=======
               {/* Footer */}
               <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0 bg-white">
                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-3 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-2xl font-bold text-sm transition-all">Hủy</button>
@@ -583,6 +704,7 @@ export default function TeamManagement() {
               </div>
             </form>
             <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-purple-500 shrink-0" />
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
           </div>
         </div>
       )}
@@ -593,7 +715,7 @@ export default function TeamManagement() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col max-h-[80vh]">
             <div className="p-8 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h3 className="text-xl font-bold text-gray-800">Gán thành viên vào đội</h3>
+                <h3 className="text-xl font-bold text-gray-800">Thêm thành viên vào đội</h3>
                 <p className="text-sm text-gray-500 mt-1">{assignTargetTeam?.name}</p>
               </div>
               <button onClick={() => setShowAssignModal(false)} className="p-2 hover:bg-gray-100 rounded-xl transition-colors">
@@ -615,11 +737,19 @@ export default function TeamManagement() {
 
               <div className="overflow-y-auto max-h-[400px] space-y-2 pr-2 custom-scrollbar">
                 {allCollectors
+<<<<<<< HEAD
+                  .filter(c =>
+                    (c.fullName.toLowerCase().includes(assignSearch.toLowerCase()) ||
+                      c.email.toLowerCase().includes(assignSearch.toLowerCase())) &&
+                    c.teamId === null
+                  )
+=======
                   .filter(c => {
                     const matchesSearch = c.fullName?.toLowerCase().includes(assignSearch.toLowerCase()) ||
                                          c.userId?.toString().includes(assignSearch);
                     return matchesSearch;
                   })
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                   .map(member => (
                     <div key={member.collectorId} className="bg-white p-4 rounded-xl border border-gray-200 flex items-center justify-between hover:border-indigo-300 transition-all group">
                       <div className="flex items-center gap-3">
@@ -633,6 +763,20 @@ export default function TeamManagement() {
                           </p>
                         </div>
                       </div>
+<<<<<<< HEAD
+                      <button
+                        onClick={() => handleAssignMember(member.collectorId)}
+                        className="px-4 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white rounded-lg text-xs font-bold transition-all opacity-100 md:opacity-0 group-hover:opacity-100"
+                      >
+                        Thêm vào đội
+                      </button>
+                    </div>
+                  ))}
+
+                {allCollectors.filter(c => c.teamId === null).length === 0 && (
+                  <div className="text-center py-10 text-gray-400 italic text-sm">
+                    Không có nhân viên thu gom tự do nào khả dụng.
+=======
                       <div className="flex items-center gap-2">
                         <select
                           className="bg-gray-50 border border-gray-200 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
@@ -660,6 +804,7 @@ export default function TeamManagement() {
                 {allCollectors.filter(c => c.teamId === null || c.teamId === 0).length === 0 && !assignSearch && (
                   <div className="text-center py-10 text-gray-400 italic text-sm">
                     Hiện tại không có nhân viên nào đang trống.
+>>>>>>> 3175e36646d1ecc1f24b806543288dc880fffd24
                   </div>
                 )}
               </div>

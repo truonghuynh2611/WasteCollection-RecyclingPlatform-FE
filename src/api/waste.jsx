@@ -1,11 +1,11 @@
 import axiosClient from "./axiosClient";
 
 export const getPendingReportsForAdmin = async () => {
-    const response = await axiosClient.get("/WasteReport/admin/pending");
-    if (response.data && response.data.success) {
-        return response.data.data;
-    }
-    throw new Error(response.data?.message || "Lỗi khi lấy danh sách báo cáo chờ xử lý");
+  const response = await axiosClient.get("/WasteReport/admin/pending");
+  if (response.data && response.data.success) {
+    return response.data.data;
+  }
+  throw new Error(response.data?.message || "Lỗi khi lấy danh sách báo cáo chờ xử lý");
 };
 
 export const createWasteReport = async (reportData) => {
@@ -48,12 +48,22 @@ export const updateWasteReport = async (reportId, updateData) => {
   return response.data;
 };
 
-export const verifyWasteReportCompletion = async (verifyData) => {
-  const response = await axiosClient.post("/WasteReport/verify-completion", verifyData);
+export const assignReport = async (reportId) => {
+  const response = await axiosClient.post(`/WasteReport/${reportId}/assign`);
   return response.data;
 };
 
-export const cancelWasteReport = async (reportId, reason = "") => {
-  const response = await axiosClient.post("/WasteReport/cancel-report", { reportId, reason });
+export const submitCompletion = async (data) => {
+  const response = await axiosClient.post("/WasteReport/submit-completion", data);
+  return response.data;
+};
+
+export const rejectReport = async (reportId, reason) => {
+  const response = await axiosClient.post(`/WasteReport/${reportId}/reject`, { reason });
+  return response.data;
+};
+
+export const verifyCompletion = async (data) => {
+  const response = await axiosClient.post("/WasteReport/verify-completion", data);
   return response.data;
 };

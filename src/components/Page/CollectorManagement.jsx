@@ -78,9 +78,9 @@ export default function CollectorManagement() {
       const res = await toggleCollectorStatus(collector.collectorId);
       if (res.success) {
         toast.success(res.message || "Đã cập nhật trạng thái");
-        fetchData(); 
+        fetchData();
         if (selectedStaff && selectedStaff.collectorId === collector.collectorId) {
-            setSelectedStaff({ ...selectedStaff, status: !selectedStaff.status });
+          setSelectedStaff({ ...selectedStaff, status: !selectedStaff.status });
         }
       }
     } catch (error) {
@@ -90,16 +90,16 @@ export default function CollectorManagement() {
 
   const filtered = staff.filter(s => {
     const teamName = teams.find(t => t.teamId === s.teamId)?.name || "";
-    const matchSearch = s.fullName.toLowerCase().includes(search.toLowerCase()) || 
-                       teamName.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = s.fullName.toLowerCase().includes(search.toLowerCase()) ||
+      teamName.toLowerCase().includes(search.toLowerCase());
     const statusText = s.status ? "Hoạt động" : "Bị khóa";
     const matchStatus = filterStatus === "Tất cả" || statusText === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const statusStyle = { 
-    "Hoạt động": "bg-green-100 text-green-700", 
-    "Bị khóa": "bg-red-100 text-red-600" 
+  const statusStyle = {
+    "Hoạt động": "bg-green-100 text-green-700",
+    "Bị khóa": "bg-red-100 text-red-600"
   };
 
   return (
@@ -113,7 +113,7 @@ export default function CollectorManagement() {
                 <h1 className="text-3xl font-bold text-gray-800">Quản lý người thu gom</h1>
                 <p className="text-gray-500 mt-1">Quản lý đội ngũ người thu gom rác theo khu vực</p>
               </div>
-              <button 
+              <button
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-sm"
               >
@@ -171,9 +171,23 @@ export default function CollectorManagement() {
                 const team = teams.find(t => t.teamId === s.teamId);
                 const statusText = s.status ? "Hoạt động" : "Bị khóa";
                 return (
-                  <div key={s.collectorId} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-lg transition-all flex flex-col relative group">
-                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <span className={`w-2 h-2 rounded-full block ${s.status ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]' : 'bg-red-500'}`}></span>
+                  <div key={s.collectorId} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg ${s.role === 'Leader' ? 'bg-amber-500' : 'bg-indigo-500'}`}>
+                          {s.fullName.charAt(0)}
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-800">{s.fullName}</p>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <Briefcase className="w-3 h-3 text-gray-400" />
+                            <span className="text-xs text-gray-500">{team?.name || "Chưa thêm vào đội"}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider ${statusStyle[statusText]}`}>
+                        {statusText}
+                      </span>
                     </div>
 
                     <div className="flex flex-col items-center mt-2 mb-4">
@@ -185,7 +199,7 @@ export default function CollectorManagement() {
                           {statusText}
                         </span>
                       </div>
-                      
+
                       <h3 className="font-bold text-gray-800 text-center mt-2 w-full truncate px-2">{s.fullName}</h3>
                       <div className="flex items-center justify-center gap-1.5 mt-1 w-full text-center">
                         <Briefcase className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
@@ -246,11 +260,10 @@ export default function CollectorManagement() {
                       <button
                         key={idx}
                         onClick={() => setCurrentPage(idx + 1)}
-                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${
-                          currentPage === idx + 1
+                        className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors ${currentPage === idx + 1
                             ? "bg-green-500 text-white shadow-sm"
                             : "text-gray-600 hover:bg-gray-100"
-                        }`}
+                          }`}
                       >
                         {idx + 1}
                       </button>
@@ -284,7 +297,7 @@ export default function CollectorManagement() {
                 <p className="text-xs text-amber-600 font-bold uppercase mt-1">{selectedStaff.role}</p>
               </div>
             </div>
-            
+
             <div className="space-y-2">
               {[
                 ["User ID", `#${selectedStaff.userId}`],
@@ -299,13 +312,13 @@ export default function CollectorManagement() {
                 </div>
               ))}
             </div>
-            
+
             <div className="flex gap-3 mt-6">
-              <button 
-                onClick={() => handleToggleStatus(selectedStaff)} 
+              <button
+                onClick={() => handleToggleStatus(selectedStaff)}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-bold transition-colors ${selectedStaff.status ? 'bg-red-50 hover:bg-red-100 text-red-600 border border-red-100' : 'bg-green-50 hover:bg-green-100 text-green-600 border border-green-100'}`}
               >
-                {selectedStaff.status ? <><Lock className="w-4 h-4"/> Khóa tài khoản</> : <><Unlock className="w-4 h-4"/> Mở khóa tài khoản</>}
+                {selectedStaff.status ? <><Lock className="w-4 h-4" /> Khóa tài khoản</> : <><Unlock className="w-4 h-4" /> Mở khóa tài khoản</>}
               </button>
               <button onClick={() => setSelectedStaff(null)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-bold transition-colors border border-gray-200">
                 Đóng
@@ -324,7 +337,7 @@ export default function CollectorManagement() {
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
-            
+
             <form onSubmit={handleAddCollector} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Họ và tên *</label>
@@ -359,9 +372,8 @@ export default function CollectorManagement() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Gán vào Đội *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Thêm vào Đội</label>
                 <select
-                  required
                   className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-green-500 outline-none"
                   value={newCollector.teamId}
                   onChange={e => setNewCollector({ ...newCollector, teamId: e.target.value })}
@@ -372,7 +384,7 @@ export default function CollectorManagement() {
                   ))}
                 </select>
               </div>
-              
+
               <div className="pt-4 flex gap-3">
                 <button type="button" onClick={() => setShowAddModal(false)} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
                   Hủy
