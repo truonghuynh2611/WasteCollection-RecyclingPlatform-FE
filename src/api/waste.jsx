@@ -43,6 +43,11 @@ export const submitCompletion = async (data) => {
   return response.data;
 };
 
+export const rejectReport = async (reportId, reason) => {
+  const response = await axiosClient.post(`/WasteReport/${reportId}/reject`, { reason });
+  return response.data;
+};
+
 export const verifyCompletion = async (data) => {
   const response = await axiosClient.post("/WasteReport/verify-completion", data);
   return response.data;

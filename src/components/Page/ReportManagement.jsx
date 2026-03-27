@@ -13,7 +13,7 @@ import ManagerSidebar from "../Manager/ManagerSidebar";
 // Nhập context xác thực để kiểm tra vai trò người dùng
 import { useAuth } from "../../contexts/AuthContext";
 // Nhập hàm gọi API lấy danh sách báo cáo rác
-import { getWasteReports, assignReport, verifyCompletion } from "../../api/waste";
+import { getWasteReports, assignReport, verifyCompletion, rejectReport } from "../../api/waste";
 // Thành phần hiển thị thông báo nhẹ (Toast)
 import Toast from "../common/Toast";
 
@@ -290,7 +290,10 @@ export default function ReportManagement() {
 
   const handleVerify = async (reportId, isApproved) => {
     try {
-      const res = await verifyCompletion({ reportId, isApproved, adminNote: "Verified by Admin" });
+      const adminNote = isApproved ? "Verified by Admin" : window.prompt("Nhập lý do từ chối bằng chứng:", "Bằng chứng không rõ ràng");
+      if (!isApproved && adminNote === null) return; // Hủy nếu nhấn Cancel ở prompt
+
+      const res = await verifyCompletion({ reportId, isApproved, adminNote: adminNote || "Rejected by Admin" });
       if (res.success || res === "Report finalized and points awarded" || res === "Report rejected and returned to team") {
         showToast(isApproved ? "Đã xác nhận hoàn thành" : "Đã từ chối bằng chứng");
         fetchReports();
@@ -299,6 +302,23 @@ export default function ReportManagement() {
       }
     } catch (error) {
       showToast(error.response?.data || error.message || "Lỗi khi xử lý", "error");
+    }
+  };
+
+  const handleRejectPending = async (reportId) => {
+    try {
+      const reason = window.prompt("Nhập lý do từ chối báo cáo này:", "Thông tin rác không chính xác");
+      if (reason === null) return; // Hủy nếu nhấn Cancel
+
+      const res = await rejectReport(reportId, reason || "Từ chối bởi Admin");
+      if (res.success || res.data) {
+        showToast("Đã từ chối báo cáo");
+        fetchReports();
+      } else {
+        showToast(res.message || "Lỗi khi từ chối", "error");
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || error.message || "Lỗi khi từ chối", "error");
     }
   };
 
@@ -428,23 +448,39 @@ export default function ReportManagement() {
                           >
                             <Eye className="w-4 h-4" />
                           </button>
-                          {req.status === "Pending" && (
-                            <button 
-                              onClick={() => handleApprove(req.reportId)}
-                              className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition-colors"
-                            >
-                              Duyệt
-                            </button>
-                          )}
-                          {req.status === "ReportedByTeam" && (
-                            <button 
-                              onClick={() => handleVerify(req.reportId, true)}
-                              className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors"
-                            >
-                              Xác nhận
-                            </button>
-                          )}
-                        </div>
+                           {req.status === "Pending" && (
+                             <div className="flex gap-2">
+                               <button 
+                                 onClick={() => handleApprove(req.reportId)}
+                                 className="px-3 py-1 bg-green-500 text-white rounded-lg text-xs font-bold hover:bg-green-600 transition-colors"
+                               >
+                                 Duyệt
+                               </button>
+                               <button 
+                                 onClick={() => handleRejectPending(req.reportId)}
+                                 className="px-3 py-1 bg-rose-500 text-white rounded-lg text-xs font-bold hover:bg-rose-600 transition-colors"
+                               >
+                                 Từ chối
+                               </button>
+                             </div>
+                           )}
+                           {req.status === "ReportedByTeam" && (
+                             <div className="flex gap-2">
+                               <button 
+                                 onClick={() => handleVerify(req.reportId, true)}
+                                 className="px-3 py-1 bg-blue-500 text-white rounded-lg text-xs font-bold hover:bg-blue-600 transition-colors"
+                               >
+                                 Xác nhận
+                               </button>
+                               <button 
+                                 onClick={() => handleVerify(req.reportId, false)}
+                                 className="px-3 py-1 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600 transition-colors"
+                               >
+                                 Từ chối
+                               </button>
+                             </div>
+                           )}
+                         </div>
                       </td>
                     </tr>
                   ))
